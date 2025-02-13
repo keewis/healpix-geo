@@ -41,8 +41,7 @@ jobs:
       matrix:
         os:
           - "ubuntu-latest"
-          # building proj-sys on windows appears to not really be possible
-          # - "windows-latest"
+          - "windows-latest"
           - "macos-latest"
         python-version: ["3.10", "3.12", "3.13"]
 
@@ -92,24 +91,25 @@ jobs:
             ls -l $CONDA_PREFIX/lib
           fi
 
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          echo "CPATH=$CPATH" >> $GITHUB_ENV
-          echo "PYO3_PYTHON=$PYO3_PYTHON" >> $GITHUB_ENV
+          if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
+            echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+            echo "CPATH=$CPATH" >> $GITHUB_ENV
+            echo "PYO3_PYTHON=$PYO3_PYTHON" >> $GITHUB_ENV
 
-          echo >> .cargo/config.toml
-          echo "[env]" >> .cargo/config.toml
-          echo "PKG_CONFIG_PATH = '$PKG_CONFIG_PATH'" >> .cargo/config.toml
-          echo "LD_LIBRARY_PATH = '$LD_LIBRARY_PATH'" >> .cargo/config.toml
-          echo "CPATH = '$CPATH'" >> .cargo/config.toml
-          echo "PYO3_PYTHON = '$PYO3_PYTHON'" >> .cargo/config.toml
+            echo >> .cargo/config.toml
+            echo "[env]" >> .cargo/config.toml
+            echo "PKG_CONFIG_PATH = '$PKG_CONFIG_PATH'" >> .cargo/config.toml
+            echo "LD_LIBRARY_PATH = '$LD_LIBRARY_PATH'" >> .cargo/config.toml
+            echo "CPATH = '$CPATH'" >> .cargo/config.toml
+            echo "PYO3_PYTHON = '$PYO3_PYTHON'" >> .cargo/config.toml
 
-          echo "final cargo config:"
-          cat .cargo/config.toml
-          echo "---"
-          echo "env:"
-          env
-
+            echo "final cargo config:"
+            cat .cargo/config.toml
+            echo "---"
+            echo "env:"
+            env
+          fi
       - name: Run tests
         run: |
           cargo build --tests --keep-going

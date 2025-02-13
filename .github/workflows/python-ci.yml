@@ -48,9 +48,8 @@ jobs:
         os:
           - "ubuntu-latest"
           - "macos-latest"
-          # building the proj-sys crate appears to be tricky on windows
-          # - "windows-latest"
-        python-version: ["3.10", "3.12"]
+          - "windows-latest"
+        python-version: ["3.10", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
