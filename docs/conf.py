@@ -22,6 +22,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- myst-parser -------------------------------------------------------------
 
+myst_enable_extensions = ["dollarmath"]
+
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "pydata_sphinx_theme"
