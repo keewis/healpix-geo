@@ -263,7 +263,6 @@ impl RangeMOCIndex {
         let create = py
             .import("healpix_geo")?
             .getattr("nested")?
-            .getattr("RangeMOCIndex")?
             .getattr("create_empty")?;
         let args = (self.moc.depth_max(),);
         let state = self.__getstate__(py)?;
