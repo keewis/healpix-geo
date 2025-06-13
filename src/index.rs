@@ -152,6 +152,8 @@ impl Subset for RangeMOC<u64, Hpx<u64>> {
 
 /// range-based index of healpix cell ids
 ///
+/// The idea is to compress cell ids at depth 29 based on run-length encoding (RLE).
+///
 /// Only works with cell ids following the "nested" scheme.
 #[derive(PartialEq, Debug, Clone)]
 #[pyclass]
@@ -162,6 +164,14 @@ pub struct RangeMOCIndex {
 
 #[pymethods]
 impl RangeMOCIndex {
+    /// Create a full domain index
+    ///
+    /// This is a short-cut for creating an index for the entire sphere.
+    ///
+    /// Parameters
+    /// ----------
+    /// depth : int
+    ///     The cell depth.
     #[classmethod]
     fn full_domain(_cls: &Bound<'_, PyType>, depth: u8) -> PyResult<Self> {
         let index = RangeMOCIndex {
@@ -171,6 +181,12 @@ impl RangeMOCIndex {
         Ok(index)
     }
 
+    /// Create an empty index
+    ///
+    /// Parameters
+    /// ----------
+    /// depth : int
+    ///     The cell depth.
     #[classmethod]
     fn create_empty(_cls: &Bound<'_, PyType>, depth: u8) -> PyResult<Self> {
         let index = RangeMOCIndex {
@@ -180,6 +196,14 @@ impl RangeMOCIndex {
         Ok(index)
     }
 
+    /// Create an index from given cell ids.
+    ///
+    /// Parameters
+    /// ----------
+    /// depth : int
+    ///     The cell depth.
+    /// cell_ids : numpy.ndarray
+    ///     The cells to construct the the index from.
     #[classmethod]
     fn from_cell_ids<'a>(
         _cls: &Bound<'a, PyType>,
@@ -195,28 +219,55 @@ impl RangeMOCIndex {
         Ok(index)
     }
 
+    /// Compute the set union of two indexes
+    ///
+    /// Parameters
+    /// ----------
+    /// other : RangeMOCIndex
+    ///     The other index. May have a different depth, in which case the
+    ///     result will use the maximum depth between both indexes.
+    ///
+    /// Returns
+    /// -------
+    /// result : RangeMOCIndex
+    ///     The union of the two indexes.
     fn union(&self, other: &RangeMOCIndex) -> Self {
         RangeMOCIndex {
             moc: self.moc.union(&other.moc),
         }
     }
 
+    /// Compute the set intersection of two indexes
+    ///
+    /// Parameters
+    /// ----------
+    /// other : RangeMOCIndex
+    ///     The other index. May have a different depth, in which case the
+    ///     result will use the maximum depth between both indexes.
+    ///
+    /// Returns
+    /// -------
+    /// result : RangeMOCIndex
+    ///     The intersection of the two indexes.
     fn intersection(&self, other: &RangeMOCIndex) -> Self {
         RangeMOCIndex {
             moc: self.moc.intersection(&other.moc),
         }
     }
 
+    /// The size of the ranges in bytes, minus any overhead.
     #[getter]
     fn nbytes(&self) -> u64 {
         self.moc.len() as u64 * 2 * u64::BITS as u64 / 8
     }
 
+    /// The number of items in the index.
     #[getter]
     fn size(&self) -> u64 {
         self.moc.n_depth_max_cells()
     }
 
+    /// The depth of the index.
     #[getter]
     fn depth(&self) -> u8 {
         self.moc.depth_max()
@@ -274,14 +325,31 @@ impl RangeMOCIndex {
         ))
     }
 
+    /// Retrieve the cell ids from the index.
+    ///
+    /// Returns
+    /// -------
+    /// cell_ids : numpy.ndarray
+    ///     The cell ids contained by the index.
     fn cell_ids<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyArray1<u64>>> {
         let cell_ids = Array1::from_iter(self.moc.flatten_to_fixed_depth_cells());
 
         Ok(PyArray1::from_owned_array(py, cell_ids))
     }
 
-    fn isel<'a>(&self, _py: Python<'a>, index: OffsetIndexKind<'a>) -> PyResult<Self> {
-        match index {
+    /// Subset the index using positions
+    ///
+    /// Parameters
+    /// ----------
+    /// indexer : slice of int
+    ///     The integer positions. Currently only supports slices.
+    ///
+    /// Returns
+    /// -------
+    /// subset : RangeMOCIndex
+    ///     The resulting subset.
+    fn isel<'a>(&self, _py: Python<'a>, indexer: OffsetIndexKind<'a>) -> PyResult<Self> {
+        match indexer {
             OffsetIndexKind::Slice(slice) => {
                 let concrete_slice = slice
                     .getattr("indices")?
