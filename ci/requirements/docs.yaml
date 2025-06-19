@@ -9,6 +9,9 @@ dependencies:
   - jupyter-sphinx
   - matplotlib
   - sphinx-autobuild
-  - pip
-  - pip:
-      - -e ../..
+  - geopandas
+  - tabulate
+  - markdown
+  - pandas
+  - pyresample
+  - cdshealpix
