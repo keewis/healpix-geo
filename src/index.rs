@@ -8,10 +8,12 @@ use pyo3::types::{PyBytes, PySlice, PyType};
 use ndarray::parallel::prelude::*;
 use rayon::iter::ParallelIterator;
 
+use cdshealpix::nested;
+
 use moc::deser::json::from_json_aladin;
 use moc::elemset::range::MocRanges;
 use moc::moc::cell::CellMOC;
-use moc::moc::range::RangeMOC;
+use moc::moc::range::{CellSelection, RangeMOC};
 use moc::moc::{
     CellMOCIntoIterator, CellMOCIterator, HasMaxDepth, RangeMOCIntoIterator, RangeMOCIterator,
 };
@@ -20,7 +22,8 @@ use moc::ranges::SNORanges;
 use std::cmp::PartialEq;
 use std::ops::Range;
 
-use crate::slice_objects::{AsSlice, CellIdSlice, ConcreteSlice};
+use crate::geometry::GeometryTypes;
+use crate::slice_objects::{AsSlice, CellIdSlice, ConcreteSlice, MultiConcreteSlice};
 
 #[derive(FromPyObject, IntoPyObject)]
 enum IndexKind<'py> {
@@ -198,6 +201,92 @@ impl Subset for RangeMOC<u64, Hpx<u64>> {
     }
 }
 
+trait SizedRanges {
+    fn range_sizes(&self) -> Vec<usize>;
+}
+
+impl SizedRanges for RangeMOC<u64, Hpx<u64>> {
+    fn range_sizes(&self) -> Vec<usize> {
+        let relative_depth = 29 - self.depth_max();
+
+        self.moc_ranges()
+            .0
+            .par_iter()
+            .map(|r| ((r.end - r.start) >> (relative_depth << 1)) as usize)
+            .collect()
+    }
+}
+
+fn range_offsets(sizes: Vec<usize>) -> Vec<usize> {
+    sizes
+        .iter()
+        .scan(0, |state, x| {
+            let val = *state;
+            *state += x;
+            Some(val)
+        })
+        .collect()
+}
+
+trait IndexSetOps {
+    fn index_intersection(&self, other: Self) -> PyResult<(Vec<ConcreteSlice>, Self)>
+    where
+        Self: Sized;
+}
+
+impl IndexSetOps for RangeMOC<u64, Hpx<u64>> {
+    fn index_intersection(&self, other: Self) -> PyResult<(Vec<ConcreteSlice>, Self)> {
+        let depth = self.depth_max();
+        let relative_depth = 29 - depth;
+        let shift = relative_depth << 1;
+
+        let range_sizes = self.range_sizes();
+        let offsets: Vec<usize> = range_offsets(range_sizes);
+
+        let new_moc = self.intersection(&other);
+
+        let slices = other
+            .moc_ranges()
+            .par_iter()
+            .filter_map(|range_o| {
+                let start_o = range_o.start >> shift;
+                let end_o = range_o.end >> shift;
+                let slices: Vec<_> = self
+                    .moc_ranges()
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, range_s)| {
+                        let start_s = range_s.start >> shift;
+                        let end_s = range_s.end >> shift;
+                        let offset = offsets[index];
+
+                        if (start_o <= end_s) && (end_o >= start_s) {
+                            let pos_slice = ConcreteSlice {
+                                start: start_o.saturating_sub(start_s) as isize + offset as isize,
+                                stop: end_o.min(end_s).saturating_sub(start_s) as isize
+                                    + offset as isize,
+                                step: 1,
+                            };
+
+                            Some(pos_slice)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                if !slices.is_empty() {
+                    Some(ConcreteSlice::join_slices(slices).map_err(PyValueError::new_err))
+                } else {
+                    None
+                }
+            })
+            .collect::<PyResult<Vec<ConcreteSlice>>>()?;
+
+        Ok((slices, new_moc))
+    }
+}
+
 /// range-based index of healpix cell ids
 ///
 /// The idea is to compress cell ids at depth 29 based on run-length encoding (RLE).
@@ -208,19 +297,6 @@ impl Subset for RangeMOC<u64, Hpx<u64>> {
 #[pyo3(module = "healpix_geo.nested")]
 pub struct RangeMOCIndex {
     moc: RangeMOC<u64, Hpx<u64>>,
-}
-
-impl RangeMOCIndex {
-    fn range_sizes(&self, depth: u8) -> Vec<usize> {
-        let relative_depth = 29 - depth;
-
-        self.moc
-            .moc_ranges()
-            .0
-            .par_iter()
-            .map(|r| ((r.end - r.start) >> (relative_depth << 1)) as usize)
-            .collect()
-    }
 }
 
 #[pymethods]
@@ -443,15 +519,8 @@ impl RangeMOCIndex {
     ///     The integer
     fn sel<'a>(&self, py: Python<'a>, indexer: IndexKind<'a>) -> PyResult<(IndexKind<'a>, Self)> {
         let depth = self.moc.depth_max();
-        let range_sizes = self.range_sizes(depth);
-        let offsets: Vec<usize> = range_sizes
-            .iter()
-            .scan(0, |state, x| {
-                let val = *state;
-                *state += x;
-                Some(val)
-            })
-            .collect();
+        let range_sizes = self.moc.range_sizes();
+        let offsets = range_offsets(range_sizes);
 
         match indexer {
             IndexKind::Slice(pyslice) => {
@@ -550,5 +619,71 @@ impl RangeMOCIndex {
                 ))
             }
         }
+    }
+
+    /// Query by geometry
+    ///
+    /// Parameters
+    /// ----------
+    /// geometry : Bbox or shapely.Geometry
+    ///     The geometry to query by. Supported are:
+    ///     - Bbox for true bounding box queries (planar geometry)
+    ///     - shapely objects for spherical geometry queries
+    ///
+    /// Returns
+    /// -------
+    /// slices : MultiConcreteSlice
+    ///     The slices necessary for extract the subdomain.
+    /// moc : RangeMOCIndex
+    ///     The index for the queried cell ids.
+    fn query<'py>(
+        &self,
+        py: Python<'py>,
+        geometry: &Bound<'py, PyAny>,
+    ) -> PyResult<(MultiConcreteSlice, Self)> {
+        let depth = self.moc.depth_max();
+        let layer = nested::get(depth);
+
+        let geom = GeometryTypes::from_pyobject(py, geometry)?;
+
+        let geometry_moc = match geom {
+            GeometryTypes::Point(lon, lat) => {
+                let hash = layer.hash(lon.rem_euclid(360.0).to_radians(), lat.to_radians());
+
+                RangeMOC::from_fixed_depth_cells(depth, vec![hash].into_iter(), None)
+            }
+            GeometryTypes::LineString(coords) => {
+                let hashes = coords
+                    .into_iter()
+                    .map(|(lon, lat)| {
+                        layer.hash(lon.rem_euclid(360.0).to_radians(), lat.to_radians())
+                    })
+                    .collect::<Vec<u64>>();
+
+                RangeMOC::from_fixed_depth_cells(depth, hashes.into_iter(), None)
+            }
+            GeometryTypes::Polygon(exterior, _interiors) => {
+                let converted = exterior
+                    .into_iter()
+                    .map(|r| (r.0.rem_euclid(360.0).to_radians(), r.1.to_radians()))
+                    .collect::<Vec<(_, _)>>();
+
+                RangeMOC::from_polygon(&converted, false, depth, CellSelection::All)
+            }
+            GeometryTypes::Bbox(lon_min, lat_min, lon_max, lat_max) => RangeMOC::from_zone(
+                lon_min.rem_euclid(360.0).to_radians(),
+                lat_min.to_radians(),
+                lon_max.rem_euclid(360.0).to_radians(),
+                lat_max.to_radians(),
+                depth,
+                CellSelection::All,
+            ),
+        };
+
+        let (slices, moc) = self.moc.index_intersection(geometry_moc)?;
+
+        let multi_slice = MultiConcreteSlice { slices };
+
+        Ok((multi_slice, RangeMOCIndex { moc }))
     }
 }

@@ -2,6 +2,7 @@ import pickle
 
 import numpy as np
 import pytest
+import shapely
 
 import healpix_geo
 
@@ -56,7 +57,7 @@ class TestRangeMOCIndex:
 
         actual = index1.union(index2)
 
-        isinstance(actual, healpix_geo.nested.RangeMOCIndex)
+        assert isinstance(actual, healpix_geo.nested.RangeMOCIndex)
         np.testing.assert_equal(actual.cell_ids(), expected)
 
     @pytest.mark.parametrize(
@@ -227,3 +228,63 @@ class TestRangeMOCIndex:
         assert isinstance(unpickled, healpix_geo.nested.RangeMOCIndex)
         assert index.depth == unpickled.depth
         np.testing.assert_equal(unpickled.cell_ids(), index.cell_ids())
+
+    @pytest.mark.parametrize("depth", (0, 2, 10))
+    @pytest.mark.parametrize(
+        "geom",
+        (
+            pytest.param(shapely.Point(30, 30), id="point"),
+            pytest.param(shapely.box(-25, 15, 25, 35), id="polygon"),
+            pytest.param(
+                shapely.LineString([(30, 30), (31, 31), (32, 33)]), id="linestring"
+            ),
+            pytest.param(healpix_geo.geometry.Bbox(-25, 15, 25, 35), id="bbox"),
+        ),
+    )
+    @pytest.mark.parametrize("domain", ["full", "partial"])
+    def test_query(self, depth, domain, geom):
+        import cdshealpix.nested
+        from astropy.coordinates import Latitude, Longitude
+
+        if domain == "full":
+            index = healpix_geo.nested.RangeMOCIndex.full_domain(depth)
+            cell_ids = index.cell_ids()
+        else:
+            cell_ids = np.arange(4**depth, dtype="uint64")
+            index = healpix_geo.nested.RangeMOCIndex.from_cell_ids(depth, cell_ids)
+
+        if isinstance(geom, shapely.Point):
+            coords = geom.coords[0]
+            lon = Longitude([coords[0]], unit="deg")
+            lat = Latitude([coords[0]], unit="deg")
+            expected = cdshealpix.nested.lonlat_to_healpix(lon, lat, depth=depth)
+        elif isinstance(geom, shapely.LineString):
+            coords = np.asarray(geom.coords[:])
+            lon = Longitude(coords[:, 0], unit="deg")
+            lat = Latitude(coords[:, 1], unit="deg")
+
+            expected_ = np.unique(
+                cdshealpix.nested.lonlat_to_healpix(lon, lat, depth=depth)
+            )
+            expected = expected_[np.isin(expected_, cell_ids)]
+        elif isinstance(geom, shapely.Polygon):
+            coords = np.asarray(geom.exterior.coords[:])
+            lon = Longitude(coords[:, 0], unit="deg")
+            lat = Latitude(coords[:, 1], unit="deg")
+            expected_, _, _ = cdshealpix.nested.polygon_search(
+                lon, lat, depth=depth, flat=True
+            )
+            expected = expected_[np.isin(expected_, cell_ids)]
+        else:
+            expected = None
+
+        multi_slice, moc = index.query(geom)
+
+        reconstructed = np.concatenate(
+            [cell_ids[s.as_pyslice()] for s in multi_slice], axis=0
+        )
+        actual = moc.cell_ids()
+
+        if expected is not None:
+            np.testing.assert_equal(reconstructed, expected)
+        np.testing.assert_equal(actual, reconstructed)
