@@ -6,7 +6,8 @@ platforms = ["linux-64", "win-64", "osx-arm64"]
 [dependencies]
 rust = ">=1.94.0"
 maturin = ">=1.12.6"
-numpy = ">=2.0"
+numpy = ">=2.3.5"
+marray-python = ">=0.0.12"
 
 [pypi-dependencies]
 healpix-geo = { path = ".", editable = true }
