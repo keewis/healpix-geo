@@ -694,11 +694,21 @@ impl RangeMOCIndex {
         let depth = self.moc.depth_max();
         let layer = nested::get(depth);
 
+        let is_spherical = self.ellipsoid.is_spherical();
+        let ellipsoid = self.ellipsoid.into_geodesy_ellipsoid()?;
+        let coefficients = ellipsoid.coefficients_for_authalic_latitude_computations();
+
         let geom = GeometryTypes::from_pyobject(py, geometry)?;
 
         let geometry_moc = match geom {
             GeometryTypes::Point(lon, lat) => {
-                let hash = layer.hash(lon.rem_euclid(360.0).to_radians(), lat.to_radians());
+                let spherical_lon = lon.rem_euclid(360.0).to_radians();
+                let spherical_lat = if is_spherical {
+                    lat.to_radians()
+                } else {
+                    ellipsoid.latitude_geographic_to_authalic(lat.to_radians(), coefficients)
+                };
+                let hash = layer.hash(spherical_lon, spherical_lat);
 
                 RangeMOC::from_fixed_depth_cells(depth, vec![hash].into_iter(), None)
             }
@@ -706,7 +716,14 @@ impl RangeMOCIndex {
                 let hashes = coords
                     .into_iter()
                     .map(|(lon, lat)| {
-                        layer.hash(lon.rem_euclid(360.0).to_radians(), lat.to_radians())
+                        let spherical_lon = lon.rem_euclid(360.0).to_radians();
+                        let spherical_lat = if is_spherical {
+                            lat.to_radians()
+                        } else {
+                            ellipsoid
+                                .latitude_geographic_to_authalic(lat.to_radians(), coefficients)
+                        };
+                        layer.hash(spherical_lon, spherical_lat)
                     })
                     .collect::<Vec<u64>>();
 
@@ -715,19 +732,43 @@ impl RangeMOCIndex {
             GeometryTypes::Polygon(exterior, _interiors) => {
                 let converted = exterior
                     .into_iter()
-                    .map(|r| (r.0.rem_euclid(360.0).to_radians(), r.1.to_radians()))
+                    .map(|r| {
+                        let spherical_lon = r.0.rem_euclid(360.0).to_radians();
+                        let spherical_lat = if is_spherical {
+                            lat.to_radians()
+                        } else {
+                            ellipsoid
+                                .latitude_geographic_to_authalic(lat.to_radians(), coefficients)
+                        };
+                        (spherical_lon, spherical_lat)
+                    })
                     .collect::<Vec<(_, _)>>();
 
                 RangeMOC::from_polygon(&converted, false, depth, CellSelection::All)
             }
-            GeometryTypes::Bbox(lon_min, lat_min, lon_max, lat_max) => RangeMOC::from_zone(
-                lon_min.rem_euclid(360.0).to_radians(),
-                lat_min.to_radians(),
-                lon_max.rem_euclid(360.0).to_radians(),
-                lat_max.to_radians(),
-                depth,
-                CellSelection::All,
-            ),
+            GeometryTypes::Bbox(lon_min, lat_min, lon_max, lat_max) => {
+                let lon_min_ = lon_min.rem_euclid(360.0).to_radians();
+                let lon_max_ = lon_max.rem_euclid(360.0).to_radians();
+
+                let lat_min_ = if is_spherical {
+                    lat_min.to_radians()
+                } else {
+                    ellipsoid.latitude_geographic_to_authalic(lat_min.to_radians(), coefficients)
+                };
+                let lat_max_ = if is_spherical {
+                    lat_max.to_radians()
+                } else {
+                    ellipsoid.latitude_geographic_to_authalic(lat_max.to_radians(), coefficients)
+                };
+                RangeMOC::from_zone(
+                    lon_min_,
+                    lat_min_,
+                    lon_max_,
+                    lat_max_,
+                    depth,
+                    CellSelection::All,
+                )
+            }
         };
 
         let (slices, moc) = self.moc.index_intersection(geometry_moc)?;

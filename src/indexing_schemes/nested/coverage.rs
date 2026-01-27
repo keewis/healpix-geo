@@ -1,4 +1,4 @@
-use crate::ellipsoid::{EllipsoidLike, IntoGeodesyEllipsoid};
+use crate::ellipsoid::{AsGeodesyEllipsoid, EllipsoidLike};
 use cdshealpix as healpix;
 use geodesy::ellps::Latitudes;
 use ndarray::Array1;
@@ -59,7 +59,7 @@ pub(crate) fn zone_coverage<'py>(
     Bound<'py, PyArray1<bool>>,
 )> {
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let coefficients = ellipsoid_.coefficients_for_authalic_latitude_computations();
 
@@ -111,7 +111,7 @@ pub(crate) fn box_coverage<'py>(
     Bound<'py, PyArray1<bool>>,
 )> {
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let coefficients = ellipsoid_.coefficients_for_authalic_latitude_computations();
 
@@ -162,7 +162,7 @@ pub(crate) fn polygon_coverage<'py>(
     let vertices = unsafe { vertices.as_array() };
 
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let coefficients = ellipsoid_.coefficients_for_authalic_latitude_computations();
 
@@ -216,7 +216,7 @@ pub(crate) fn cone_coverage<'py>(
     Bound<'py, PyArray1<bool>>,
 )> {
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let coefficients = ellipsoid_.coefficients_for_authalic_latitude_computations();
 
@@ -285,7 +285,7 @@ pub(crate) fn elliptical_cone_coverage<'py>(
     }
 
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let coefficients = ellipsoid_.coefficients_for_authalic_latitude_computations();
 

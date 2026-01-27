@@ -1,4 +1,4 @@
-use crate::ellipsoid::{EllipsoidLike, IntoGeodesyEllipsoid};
+use crate::ellipsoid::{AsGeodesyEllipsoid, EllipsoidLike};
 use cdshealpix as healpix;
 use cdshealpix::nested::Layer;
 use cdshealpix::sph_geom::coo3d::{UnitVec3, UnitVect3, vec3_of};
@@ -97,7 +97,7 @@ pub(crate) fn healpix_to_lonlat<'py>(
     nthreads: u16,
 ) -> PyResult<()> {
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let ipix = unsafe { ipix.as_array() };
     let mut longitude = unsafe { longitude.as_array_mut() };
@@ -131,7 +131,7 @@ pub(crate) fn lonlat_to_healpix<'a>(
     nthreads: u16,
 ) -> PyResult<()> {
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let mut ipix = unsafe { ipix.as_array_mut() };
     let longitude = unsafe { longitude.as_array() };
@@ -170,7 +170,7 @@ pub(crate) fn vertices<'a>(
     nthreads: u16,
 ) -> PyResult<()> {
     let is_spherical = ellipsoid.is_spherical();
-    let ellipsoid_ = ellipsoid.into_geodesy_ellipsoid()?;
+    let ellipsoid_ = ellipsoid.as_geodesy_ellipsoid()?;
 
     let ipix = unsafe { ipix.as_array() };
     let mut longitude = unsafe { longitude.as_array_mut() };

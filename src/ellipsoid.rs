@@ -37,15 +37,15 @@ impl EllipsoidLike {
     }
 }
 
-pub(crate) trait IntoGeodesyEllipsoid {
-    fn into_geodesy_ellipsoid(self) -> PyResult<GeoEllipsoid>;
+pub(crate) trait AsGeodesyEllipsoid {
+    fn as_geodesy_ellipsoid(&self) -> PyResult<GeoEllipsoid>;
 }
 
-impl IntoGeodesyEllipsoid for EllipsoidLike {
-    fn into_geodesy_ellipsoid(self) -> PyResult<GeoEllipsoid> {
+impl AsGeodesyEllipsoid for EllipsoidLike {
+    fn as_geodesy_ellipsoid(&self) -> PyResult<GeoEllipsoid> {
         match self {
             EllipsoidLike::Named(name) => {
-                GeoEllipsoid::named(&name).map_err(|e| PyValueError::new_err(e.to_string()))
+                GeoEllipsoid::named(name).map_err(|e| PyValueError::new_err(e.to_string()))
             }
             EllipsoidLike::EllipsoidParameters {
                 semimajor_axis,
@@ -55,12 +55,12 @@ impl IntoGeodesyEllipsoid for EllipsoidLike {
                 semimajor_axis,
                 inverse_flattening,
             } => {
-                if inverse_flattening >= 2.0 && semimajor_axis > 0.0 {
+                if *inverse_flattening >= 2.0 && *semimajor_axis > 0.0 {
                     Ok(GeoEllipsoid::new(
-                        semimajor_axis,
+                        *semimajor_axis,
                         1.0f64 / inverse_flattening,
                     ))
-                } else if inverse_flattening < 2.0 {
+                } else if *inverse_flattening < 2.0 {
                     Err(PyValueError::new_err(format!(
                         "The inverse flattening must be greater than or equal to 2, but got {:?}.",
                         inverse_flattening,
@@ -73,8 +73,8 @@ impl IntoGeodesyEllipsoid for EllipsoidLike {
                 }
             }
             EllipsoidLike::SphereParameters { radius } | EllipsoidLike::SphereObject { radius } => {
-                if radius > 0.0 {
-                    Ok(GeoEllipsoid::new(radius, 0.0f64))
+                if *radius > 0.0 {
+                    Ok(GeoEllipsoid::new(*radius, 0.0f64))
                 } else {
                     Err(PyValueError::new_err(format!(
                         "The radius must be greater than 0, but got {:?}.",
