@@ -2,7 +2,7 @@ use geodesy::ellps::Ellipsoid as GeoEllipsoid;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-#[derive(FromPyObject)]
+#[derive(FromPyObject, PartialEq, Debug, Clone, IntoPyObject)]
 pub(crate) enum EllipsoidLike {
     Named(String),
     EllipsoidParameters {
