@@ -468,6 +468,12 @@ impl RangeMOCIndex {
         self.moc.depth_max()
     }
 
+    /// The reference ellipsoid
+    #[getter]
+    fn ellipsoid(&self) -> EllipsoidLike {
+        self.ellipsoid.clone()
+    }
+
     pub fn __setstate__(&mut self, state: &[u8]) -> PyResult<()> {
         // Deserialize the data contained in the PyBytes object
         // and update the struct with the deserialized values.
