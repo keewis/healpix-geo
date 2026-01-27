@@ -465,7 +465,7 @@ impl RangeMOCIndex {
                 .map(|c| -> (u8, u64) { (c.depth, c.idx) }),
             None,
         );
-        *self = RangeMOCIndex { moc: reconstructed };
+        self.moc = reconstructed;
 
         Ok(())
     }
