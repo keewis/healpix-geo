@@ -9,8 +9,14 @@ import healpix_geo
 
 class TestRangeMOCIndex:
     @pytest.mark.parametrize("level", [0, 3, 6])
-    def test_full_domain(self, level):
-        index = healpix_geo.nested.RangeMOCIndex.full_domain(level)
+    @pytest.mark.parametrize(
+        "ellipsoid", [pytest.param(None, id="default"), "WGS84", {"radius": 6371000.0}]
+    )
+    def test_full_domain(self, level, ellipsoid):
+        kwargs = {}
+        if ellipsoid is not None:
+            kwargs["ellipsoid"] = ellipsoid
+        index = healpix_geo.nested.RangeMOCIndex.full_domain(level, **kwargs)
 
         expected = np.arange(12 * 4**level, dtype="uint64")
 
@@ -18,6 +24,12 @@ class TestRangeMOCIndex:
         assert index.size == expected.size
         assert index.depth == level
 
+        expected_ellipsoid = ellipsoid if ellipsoid is not None else "sphere"
+        assert index.ellipsoid == expected_ellipsoid
+
+    @pytest.mark.parametrize(
+        "ellipsoid", [pytest.param(None, id="default"), "WGS84", {"radius": 6371000.0}]
+    )
     @pytest.mark.parametrize(
         ["level", "cell_ids"],
         (
@@ -26,11 +38,19 @@ class TestRangeMOCIndex:
             (6, np.arange(3 * 4**6, 5 * 4**6, dtype="uint64")),
         ),
     )
-    def test_from_cell_ids(self, level, cell_ids):
-        index = healpix_geo.nested.RangeMOCIndex.from_cell_ids(level, cell_ids)
+    def test_from_cell_ids(self, level, cell_ids, ellipsoid):
+        kwargs = {}
+        if ellipsoid is not None:
+            kwargs["ellipsoid"] = ellipsoid
+        index = healpix_geo.nested.RangeMOCIndex.from_cell_ids(
+            level, cell_ids, **kwargs
+        )
 
         assert index.size == cell_ids.size
         assert index.depth == level
+
+        expected_ellipsoid = ellipsoid if ellipsoid is not None else "sphere"
+        assert index.ellipsoid == expected_ellipsoid
 
     @pytest.mark.parametrize(
         ["level", "cell_ids1", "cell_ids2", "expected"],
