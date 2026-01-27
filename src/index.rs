@@ -22,6 +22,7 @@ use moc::ranges::SNORanges;
 use std::cmp::PartialEq;
 use std::ops::Range;
 
+use crate::ellipsoid::{EllipsoidLike, IntoGeodesyEllipsoid};
 use crate::geometry::GeometryTypes;
 use crate::slice_objects::{AsSlice, CellIdSlice, ConcreteSlice, MultiConcreteSlice};
 
@@ -297,6 +298,7 @@ impl IndexSetOps for RangeMOC<u64, Hpx<u64>> {
 #[pyo3(module = "healpix_geo.nested")]
 pub struct RangeMOCIndex {
     moc: RangeMOC<u64, Hpx<u64>>,
+    ellipsoid: EllipsoidLike,
 }
 
 #[pymethods]
@@ -309,10 +311,17 @@ impl RangeMOCIndex {
     /// ----------
     /// depth : int
     ///     The cell depth.
+    /// ellipsoid : ellipsoid-like
+    ///     The reference ellipsoid.
     #[classmethod]
-    fn full_domain(_cls: &Bound<'_, PyType>, depth: u8) -> PyResult<Self> {
+    fn full_domain(
+        _cls: &Bound<'_, PyType>,
+        depth: u8,
+        ellipsoid: EllipsoidLike,
+    ) -> PyResult<Self> {
         let index = RangeMOCIndex {
             moc: RangeMOC::new_full_domain(depth),
+            ellipsoid,
         };
 
         Ok(index)
@@ -324,10 +333,17 @@ impl RangeMOCIndex {
     /// ----------
     /// depth : int
     ///     The cell depth.
+    /// ellipsoid : ellipsoid-like
+    ///     The reference ellipsoid.
     #[classmethod]
-    fn create_empty(_cls: &Bound<'_, PyType>, depth: u8) -> PyResult<Self> {
+    fn create_empty(
+        _cls: &Bound<'_, PyType>,
+        depth: u8,
+        ellipsoid: EllipsoidLike,
+    ) -> PyResult<Self> {
         let index = RangeMOCIndex {
             moc: RangeMOC::new_empty(depth),
+            ellipsoid,
         };
 
         Ok(index)
@@ -339,6 +355,8 @@ impl RangeMOCIndex {
     /// ----------
     /// depth : int
     ///     The cell depth.
+    /// ellipsoid : ellipsoid-like
+    ///     The reference ellipsoid.
     /// cell_ids : numpy.ndarray
     ///     The cells to construct the the index from.
     #[classmethod]
@@ -346,11 +364,13 @@ impl RangeMOCIndex {
         _cls: &Bound<'a, PyType>,
         _py: Python,
         depth: u8,
+        ellipsoid: EllipsoidLike,
         cell_ids: &Bound<'a, PyArrayDyn<u64>>,
     ) -> PyResult<Self> {
         let cell_ids = unsafe { cell_ids.as_array() };
         let index = RangeMOCIndex {
             moc: RangeMOC::from_fixed_depth_cells(depth, cell_ids.iter().copied(), None),
+            ellipsoid,
         };
 
         Ok(index)
@@ -368,9 +388,18 @@ impl RangeMOCIndex {
     /// -------
     /// result : RangeMOCIndex
     ///     The union of the two indexes.
-    fn union(&self, other: &RangeMOCIndex) -> Self {
-        RangeMOCIndex {
-            moc: self.moc.union(&other.moc),
+    fn union(&self, other: &RangeMOCIndex) -> PyResult<Self> {
+        if self.ellipsoid == other.ellipsoid {
+            let moc = RangeMOCIndex {
+                moc: self.moc.union(&other.moc),
+                ellipsoid: self.ellipsoid.clone(),
+            };
+
+            Ok(moc)
+        } else {
+            Err(PyValueError::new_err(
+                "Ellipsoids do not match between the two indexes",
+            ))
         }
     }
 
@@ -386,9 +415,18 @@ impl RangeMOCIndex {
     /// -------
     /// result : RangeMOCIndex
     ///     The intersection of the two indexes.
-    fn intersection(&self, other: &RangeMOCIndex) -> Self {
-        RangeMOCIndex {
-            moc: self.moc.intersection(&other.moc),
+    fn intersection(&self, other: &RangeMOCIndex) -> PyResult<Self> {
+        if self.ellipsoid == other.ellipsoid {
+            let moc = RangeMOCIndex {
+                moc: self.moc.intersection(&other.moc),
+                ellipsoid: self.ellipsoid.clone(),
+            };
+
+            Ok(moc)
+        } else {
+            Err(PyValueError::new_err(
+                "Ellipsoids do not match between the two indexes",
+            ))
         }
     }
 
@@ -452,7 +490,7 @@ impl RangeMOCIndex {
             .import("healpix_geo")?
             .getattr("nested")?
             .getattr("create_empty")?;
-        let args = (self.moc.depth_max(),);
+        let args = (self.moc.depth_max(), self.ellipsoid.clone());
         let state = self.__getstate__(py)?;
 
         Ok((
@@ -494,12 +532,18 @@ impl RangeMOCIndex {
 
                 let subset = self.moc.slice(&concrete_slice)?;
 
-                Ok(RangeMOCIndex { moc: subset })
+                Ok(RangeMOCIndex {
+                    moc: subset,
+                    ellipsoid: self.ellipsoid.clone(),
+                })
             }
             IndexKind::Array(array) => {
                 let subset = self.moc.subset(&array)?;
 
-                Ok(RangeMOCIndex { moc: subset })
+                Ok(RangeMOCIndex {
+                    moc: subset,
+                    ellipsoid: self.ellipsoid.clone(),
+                })
             }
         }
     }
@@ -552,7 +596,10 @@ impl RangeMOCIndex {
 
                 let new_moc: RangeMOC<u64, Hpx<u64>> =
                     RangeMOC::new(self.moc.depth_max(), MocRanges::new_from(ranges));
-                let new_index = RangeMOCIndex { moc: new_moc };
+                let new_index = RangeMOCIndex {
+                    moc: new_moc,
+                    ellipsoid: self.ellipsoid.clone(),
+                };
 
                 Ok((IndexKind::Slice(joined_slice.as_pyslice(py)?), new_index))
             }
@@ -608,7 +655,10 @@ impl RangeMOCIndex {
                     cell_ids.into_iter(),
                     None,
                 );
-                let new_index = RangeMOCIndex { moc: new_moc };
+                let new_index = RangeMOCIndex {
+                    moc: new_moc,
+                    ellipsoid: self.ellipsoid.clone(),
+                };
 
                 Ok((
                     IndexKind::Array(PyArrayDyn::from_owned_array(
@@ -684,6 +734,12 @@ impl RangeMOCIndex {
 
         let multi_slice = MultiConcreteSlice { slices };
 
-        Ok((multi_slice, RangeMOCIndex { moc }))
+        Ok((
+            multi_slice,
+            RangeMOCIndex {
+                moc,
+                ellipsoid: self.ellipsoid.clone(),
+            },
+        ))
     }
 }
