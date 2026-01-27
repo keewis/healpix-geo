@@ -80,6 +80,23 @@ class TestRangeMOCIndex:
         assert isinstance(actual, healpix_geo.nested.RangeMOCIndex)
         np.testing.assert_equal(actual.cell_ids(), expected)
 
+    def test_union_error(self):
+        level = 4
+        cell_ids1 = np.arange(0, 6 * 4**4, dtype="uint64")
+        cell_ids2 = np.arange(6 * 4**4, 12 * 4**4, dtype="uint64")
+
+        index1 = healpix_geo.nested.RangeMOCIndex.from_cell_ids(
+            level, cell_ids1, ellipsoid="sphere"
+        )
+        index2 = healpix_geo.nested.RangeMOCIndex.from_cell_ids(
+            level, cell_ids2, ellipsoid="WGS84"
+        )
+
+        with pytest.raises(
+            ValueError, match="Ellipsoids do not match between the two indexes"
+        ):
+            index1.union(index2)
+
     @pytest.mark.parametrize(
         ["level", "cell_ids1", "cell_ids2", "expected"],
         (
@@ -105,6 +122,23 @@ class TestRangeMOCIndex:
 
         assert isinstance(actual, healpix_geo.nested.RangeMOCIndex)
         np.testing.assert_equal(actual.cell_ids(), expected)
+
+    def test_intersection_error(self):
+        level = 4
+        cell_ids1 = np.arange(0, 6 * 4**4, dtype="uint64")
+        cell_ids2 = np.arange(2 * 4**4, 8 * 4**4, dtype="uint64")
+
+        index1 = healpix_geo.nested.RangeMOCIndex.from_cell_ids(
+            level, cell_ids1, ellipsoid="sphere"
+        )
+        index2 = healpix_geo.nested.RangeMOCIndex.from_cell_ids(
+            level, cell_ids2, ellipsoid="WGS84"
+        )
+
+        with pytest.raises(
+            ValueError, match="Ellipsoids do not match between the two indexes"
+        ):
+            index1.intersection(index2)
 
     @pytest.mark.parametrize(
         ["level", "cell_ids"],
@@ -232,14 +266,22 @@ class TestRangeMOCIndex:
         np.testing.assert_equal(actual_moc.cell_ids(), expected_cell_ids)
 
     @pytest.mark.parametrize(
+        "ellipsoid", [pytest.param(None, id="default"), "WGS84", {"radius": 1}]
+    )
+    @pytest.mark.parametrize(
         ["depth", "cell_ids"],
         (
             (2, np.arange(1 * 4**2, 3 * 4**2, dtype="uint64")),
             (5, np.arange(12 * 4**5, dtype="uint64")),
         ),
     )
-    def test_pickle_roundtrip(self, depth, cell_ids):
-        index = healpix_geo.nested.RangeMOCIndex.from_cell_ids(depth, cell_ids)
+    def test_pickle_roundtrip(self, depth, cell_ids, ellipsoid):
+        kwargs = {}
+        if ellipsoid is not None:
+            kwargs["ellipsoid"] = ellipsoid
+        index = healpix_geo.nested.RangeMOCIndex.from_cell_ids(
+            depth, cell_ids, **kwargs
+        )
 
         pickled = pickle.dumps(index)
         assert isinstance(pickled, bytes)
@@ -248,6 +290,7 @@ class TestRangeMOCIndex:
         assert isinstance(unpickled, healpix_geo.nested.RangeMOCIndex)
         assert index.depth == unpickled.depth
         np.testing.assert_equal(unpickled.cell_ids(), index.cell_ids())
+        assert index.ellipsoid == unpickled.ellipsoid
 
     @pytest.mark.parametrize("depth", (0, 2, 10))
     @pytest.mark.parametrize(
