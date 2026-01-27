@@ -109,4 +109,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pixi run -e '${{ matrix.env }}' --frozen python -m pytest --cov=healpix_geo
+          pixi run -e '${{ matrix.env }}' --frozen tests
