@@ -8,6 +8,9 @@ use pyo3::types::{PyBytes, PySlice, PyType};
 use ndarray::parallel::prelude::*;
 use rayon::iter::ParallelIterator;
 
+use geodesy::authoring::FourierCoefficients;
+use geodesy::prelude::{Ellipsoid, Latitudes};
+
 use cdshealpix::nested;
 
 use moc::deser::json::from_json_aladin;
@@ -22,7 +25,7 @@ use moc::ranges::SNORanges;
 use std::cmp::PartialEq;
 use std::ops::Range;
 
-use crate::ellipsoid::{EllipsoidLike, IntoGeodesyEllipsoid};
+use crate::ellipsoid::{AsGeodesyEllipsoid, EllipsoidLike};
 use crate::geometry::GeometryTypes;
 use crate::slice_objects::{AsSlice, CellIdSlice, ConcreteSlice, MultiConcreteSlice};
 
@@ -41,6 +44,20 @@ trait Overlap {
         depth: u8,
         offset: usize,
     ) -> Option<(ConcreteSlice, Range<u64>)>;
+}
+
+#[inline]
+fn geographic_to_authalic_latitude(
+    lat: f64,
+    ellipsoid: &Ellipsoid,
+    coefficients: &FourierCoefficients,
+    is_spherical: &bool,
+) -> f64 {
+    if *is_spherical {
+        lat.to_radians()
+    } else {
+        ellipsoid.latitude_geographic_to_authalic(lat.to_radians(), coefficients)
+    }
 }
 
 impl Overlap for CellIdSlice {
@@ -695,7 +712,7 @@ impl RangeMOCIndex {
         let layer = nested::get(depth);
 
         let is_spherical = self.ellipsoid.is_spherical();
-        let ellipsoid = self.ellipsoid.into_geodesy_ellipsoid()?;
+        let ellipsoid = self.ellipsoid.as_geodesy_ellipsoid()?;
         let coefficients = ellipsoid.coefficients_for_authalic_latitude_computations();
 
         let geom = GeometryTypes::from_pyobject(py, geometry)?;
@@ -703,11 +720,9 @@ impl RangeMOCIndex {
         let geometry_moc = match geom {
             GeometryTypes::Point(lon, lat) => {
                 let spherical_lon = lon.rem_euclid(360.0).to_radians();
-                let spherical_lat = if is_spherical {
-                    lat.to_radians()
-                } else {
-                    ellipsoid.latitude_geographic_to_authalic(lat.to_radians(), coefficients)
-                };
+                let spherical_lat =
+                    geographic_to_authalic_latitude(lat, &ellipsoid, &coefficients, &is_spherical);
+
                 let hash = layer.hash(spherical_lon, spherical_lat);
 
                 RangeMOC::from_fixed_depth_cells(depth, vec![hash].into_iter(), None)
@@ -717,12 +732,12 @@ impl RangeMOCIndex {
                     .into_iter()
                     .map(|(lon, lat)| {
                         let spherical_lon = lon.rem_euclid(360.0).to_radians();
-                        let spherical_lat = if is_spherical {
-                            lat.to_radians()
-                        } else {
-                            ellipsoid
-                                .latitude_geographic_to_authalic(lat.to_radians(), coefficients)
-                        };
+                        let spherical_lat = geographic_to_authalic_latitude(
+                            lat,
+                            &ellipsoid,
+                            &coefficients,
+                            &is_spherical,
+                        );
                         layer.hash(spherical_lon, spherical_lat)
                     })
                     .collect::<Vec<u64>>();
@@ -734,12 +749,12 @@ impl RangeMOCIndex {
                     .into_iter()
                     .map(|r| {
                         let spherical_lon = r.0.rem_euclid(360.0).to_radians();
-                        let spherical_lat = if is_spherical {
-                            lat.to_radians()
-                        } else {
-                            ellipsoid
-                                .latitude_geographic_to_authalic(lat.to_radians(), coefficients)
-                        };
+                        let spherical_lat = geographic_to_authalic_latitude(
+                            r.1,
+                            &ellipsoid,
+                            &coefficients,
+                            &is_spherical,
+                        );
                         (spherical_lon, spherical_lat)
                     })
                     .collect::<Vec<(_, _)>>();
@@ -750,16 +765,18 @@ impl RangeMOCIndex {
                 let lon_min_ = lon_min.rem_euclid(360.0).to_radians();
                 let lon_max_ = lon_max.rem_euclid(360.0).to_radians();
 
-                let lat_min_ = if is_spherical {
-                    lat_min.to_radians()
-                } else {
-                    ellipsoid.latitude_geographic_to_authalic(lat_min.to_radians(), coefficients)
-                };
-                let lat_max_ = if is_spherical {
-                    lat_max.to_radians()
-                } else {
-                    ellipsoid.latitude_geographic_to_authalic(lat_max.to_radians(), coefficients)
-                };
+                let lat_min_ = geographic_to_authalic_latitude(
+                    lat_min,
+                    &ellipsoid,
+                    &coefficients,
+                    &is_spherical,
+                );
+                let lat_max_ = geographic_to_authalic_latitude(
+                    lat_max,
+                    &ellipsoid,
+                    &coefficients,
+                    &is_spherical,
+                );
                 RangeMOC::from_zone(
                     lon_min_,
                     lat_min_,
