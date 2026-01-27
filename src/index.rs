@@ -328,8 +328,9 @@ impl RangeMOCIndex {
     /// ----------
     /// depth : int
     ///     The cell depth.
-    /// ellipsoid : ellipsoid-like
+    /// ellipsoid : ellipsoid-like, default: "sphere"
     ///     The reference ellipsoid.
+    #[pyo3(signature=(depth, ellipsoid=EllipsoidLike::Named("sphere".into())), text_signature="(depth, ellipsoid='sphere')")]
     #[classmethod]
     fn full_domain(
         _cls: &Bound<'_, PyType>,
@@ -350,8 +351,9 @@ impl RangeMOCIndex {
     /// ----------
     /// depth : int
     ///     The cell depth.
-    /// ellipsoid : ellipsoid-like
+    /// ellipsoid : ellipsoid-like, default: "sphere"
     ///     The reference ellipsoid.
+    #[pyo3(signature=(depth, ellipsoid=EllipsoidLike::Named("sphere".into())), text_signature="(depth, ellipsoid='sphere')")]
     #[classmethod]
     fn create_empty(
         _cls: &Bound<'_, PyType>,
@@ -372,17 +374,18 @@ impl RangeMOCIndex {
     /// ----------
     /// depth : int
     ///     The cell depth.
-    /// ellipsoid : ellipsoid-like
-    ///     The reference ellipsoid.
     /// cell_ids : numpy.ndarray
     ///     The cells to construct the the index from.
+    /// ellipsoid : ellipsoid-like, default: "sphere"
+    ///     The reference ellipsoid.
     #[classmethod]
+    #[pyo3(signature=(depth, cell_ids, ellipsoid=EllipsoidLike::Named("sphere".into())), text_signature="(depth, cell_ids, ellipsoid='sphere')")]
     fn from_cell_ids<'a>(
         _cls: &Bound<'a, PyType>,
         _py: Python,
         depth: u8,
-        ellipsoid: EllipsoidLike,
         cell_ids: &Bound<'a, PyArrayDyn<u64>>,
+        ellipsoid: EllipsoidLike,
     ) -> PyResult<Self> {
         let cell_ids = unsafe { cell_ids.as_array() };
         let index = RangeMOCIndex {

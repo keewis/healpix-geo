@@ -6,8 +6,8 @@ from healpix_geo.utils import _check_depth, _check_ipixels, _check_ring
 RangeMOCIndex = healpix_geo.nested.RangeMOCIndex
 
 
-def create_empty(depth):
-    return RangeMOCIndex.create_empty(depth)
+def create_empty(depth, ellipsoid="sphere"):
+    return RangeMOCIndex.create_empty(depth, ellipsoid=ellipsoid)
 
 
 def healpix_to_lonlat(ipix, depth, ellipsoid, num_threads=0):
