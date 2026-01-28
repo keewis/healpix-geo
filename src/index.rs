@@ -54,9 +54,9 @@ fn geographic_to_authalic_latitude(
     is_spherical: &bool,
 ) -> f64 {
     if *is_spherical {
-        lat.to_radians()
+        lat
     } else {
-        ellipsoid.latitude_geographic_to_authalic(lat.to_radians(), coefficients)
+        ellipsoid.latitude_geographic_to_authalic(lat, coefficients)
     }
 }
 
@@ -729,8 +729,12 @@ impl RangeMOCIndex {
         let geometry_moc = match geom {
             GeometryTypes::Point(lon, lat) => {
                 let spherical_lon = lon.rem_euclid(360.0).to_radians();
-                let spherical_lat =
-                    geographic_to_authalic_latitude(lat, &ellipsoid, &coefficients, &is_spherical);
+                let spherical_lat = geographic_to_authalic_latitude(
+                    lat.to_radians(),
+                    &ellipsoid,
+                    &coefficients,
+                    &is_spherical,
+                );
 
                 let hash = layer.hash(spherical_lon, spherical_lat);
 
@@ -742,7 +746,7 @@ impl RangeMOCIndex {
                     .map(|(lon, lat)| {
                         let spherical_lon = lon.rem_euclid(360.0).to_radians();
                         let spherical_lat = geographic_to_authalic_latitude(
-                            lat,
+                            lat.to_radians(),
                             &ellipsoid,
                             &coefficients,
                             &is_spherical,
@@ -754,12 +758,18 @@ impl RangeMOCIndex {
                 RangeMOC::from_fixed_depth_cells(depth, hashes.into_iter(), None)
             }
             GeometryTypes::Polygon(exterior, _interiors) => {
+                let n = if exterior[0] == exterior[exterior.len() - 1] {
+                    exterior.len() - 1
+                } else {
+                    exterior.len()
+                };
                 let converted = exterior
                     .into_iter()
+                    .take(n)
                     .map(|r| {
-                        let spherical_lon = r.0.rem_euclid(360.0).to_radians();
+                        let spherical_lon = r.0.to_radians();
                         let spherical_lat = geographic_to_authalic_latitude(
-                            r.1,
+                            r.1.to_radians(),
                             &ellipsoid,
                             &coefficients,
                             &is_spherical,
@@ -775,13 +785,13 @@ impl RangeMOCIndex {
                 let lon_max_ = lon_max.rem_euclid(360.0).to_radians();
 
                 let lat_min_ = geographic_to_authalic_latitude(
-                    lat_min,
+                    lat_min.to_radians(),
                     &ellipsoid,
                     &coefficients,
                     &is_spherical,
                 );
                 let lat_max_ = geographic_to_authalic_latitude(
-                    lat_max,
+                    lat_max.to_radians(),
                     &ellipsoid,
                     &coefficients,
                     &is_spherical,

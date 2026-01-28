@@ -73,6 +73,7 @@ impl ShapelyGeometryTypes {
     }
 }
 
+#[derive(Debug)]
 pub enum GeometryTypes {
     Point(f64, f64),
     #[allow(dead_code)]
