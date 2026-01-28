@@ -351,3 +351,41 @@ class TestRangeMOCIndex:
         if expected is not None:
             np.testing.assert_equal(reconstructed, expected)
         np.testing.assert_equal(actual, reconstructed)
+
+    @pytest.mark.parametrize(
+        "geometry",
+        (
+            pytest.param(healpix_geo.geometry.Bbox(-10.0, 35.0, 10.0, 55.0), id="bbox"),
+            pytest.param(shapely.box(-10.0, 35.0, 10.0, 55.0), id="polygon"),
+        ),
+    )
+    @pytest.mark.parametrize("ellipsoid", ("sphere", "WGS84"))
+    def test_query_ellipsoid(self, ellipsoid, geometry):
+        depth = 5
+        index = healpix_geo.nested.RangeMOCIndex.full_domain(depth, ellipsoid=ellipsoid)
+        cell_ids = index.cell_ids()
+
+        multi_slice, moc = index.query(geometry)
+        reconstructed = np.concatenate(
+            [cell_ids[s.as_pyslice()] for s in multi_slice], axis=0
+        )
+        actual = moc.cell_ids()
+
+        if isinstance(geometry, healpix_geo.geometry.Bbox):
+            box = (
+                geometry.lon_min,
+                geometry.lat_min,
+                geometry.lon_max,
+                geometry.lat_max,
+            )
+            expected, _, _ = healpix_geo.nested.zone_coverage(
+                box, depth=depth, ellipsoid=ellipsoid, flat=True
+            )
+        elif isinstance(geometry, shapely.Polygon):
+            coords = shapely.get_coordinates(geometry.exterior)[:-1, :]
+            expected, _, _ = healpix_geo.nested.polygon_coverage(
+                coords, depth=depth, ellipsoid=ellipsoid, flat=True
+            )
+
+        np.testing.assert_equal(actual, reconstructed)
+        np.testing.assert_equal(reconstructed, expected)
