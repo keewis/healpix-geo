@@ -57,6 +57,7 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     ".ipynb_checkpoints",
+    "jupyter_execute",
 ]
 
 # -- intersphinx -------------------------------------------------------------
@@ -67,6 +68,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "cdshealpix": ("https://cds-astro.github.io/cds-healpix-python/", None),
     "lonboard": ("https://developmentseed.org/lonboard/latest/", None),
+    "shapely": ("https://shapely.readthedocs.io/en/stable", None),
 }
 
 # -- autosummary / autodoc ---------------------------------------------------
@@ -83,6 +85,7 @@ napoleon_preprocess_types = True
 napoleon_type_aliases = {
     # healpix-geo
     "ellipsoid-like": ":term:`ellipsoid-like`",
+    "array-like": ":py:class:`numpy.ndarray`",
 }
 
 # -- myst-parser -------------------------------------------------------------
