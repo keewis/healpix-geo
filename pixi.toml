@@ -4,9 +4,9 @@ name = "healpix-geo"
 platforms = ["linux-64", "win-64", "osx-arm64"]
 
 [dependencies]
-rust = ">=1.91.1,<1.92"
-maturin = ">=1.10.2,<2"
-numpy = ">=2.3.5,<3"
+rust = ">=1.94.0"
+maturin = ">=1.12.6"
+numpy = ">=2.0"
 
 [pypi-dependencies]
 healpix-geo = { path = ".", editable = true }
@@ -62,6 +62,53 @@ rust-lints = "cargo clippy --all-targets --all-features -- -D warnings"
 [feature.py314.dependencies]
 python = "3.14.*"
 
+[feature.jupyterlite.dependencies]
+rattler-build = "*"
+rattler-index = "*"
+pyjs_code_runner = ">=3.2.0,<4"
+playwright = ">=1.58.2,<2"
+playwright-python = ">=1.58.0,<2"
+mamba = ">=2.5.0,<3"
+
+[feature.jupyterlite.tasks]
+check-build = { cmd = "ci/package_check/check-build.sh", cwd = "." }
+
+[feature.templates.dependencies]
+python = "3.14.*"
+packaging = "*"
+
+[feature.templates.tasks.prepare-recipe]
+cmd = "python ci/rattler-recipe/prepare_recipe.py"
+cwd = "."
+
+[feature.jupyterlite.tasks.build-emscripten]
+cmd = [
+  "rattler-build",
+  "build",
+  "--package-format",
+  "tar-bz2",
+  "-c",
+  "https://prefix.dev/emscripten-forge-4x",
+  "-c",
+  "https://prefix.dev/conda-forge",
+  "--output-dir",
+  "target/conda",
+  "--recipe",
+  "ci/rattler-recipe/recipe.yaml",
+  "--target-platform",
+  "emscripten-wasm32",
+]
+cwd = "."
+depends-on = ["prepare-recipe"]
+
+[feature.jupyterlite.tasks.create-channel]
+cmd = "rattler-index fs target/conda"
+cwd = "."
+
+[feature.templates.tasks.create-environment]
+cmd = "python docs/create_environment.py"
+cwd = "."
+
 [feature.docs.dependencies]
 sphinx = "*"
 matplotlib = "*"
@@ -73,14 +120,17 @@ tabulate = "*"
 markdown = "*"
 pandas = "*"
 pyresample = "*"
-astropy = ">=7.2.0,<8"
-cdshealpix = ">=0.7.2,<0.8"
+astropy = ">=7.2.0"
+cdshealpix = ">=0.7.2"
 sphinx-design = ">=0.7.0,<0.8"
+jupyterlite-xeus = ">=4.5.0,<5"
+jupyterlite-sphinx = ">=0.22.1,<0.23"
+jupyterlite-core = ">=0.7.3,<0.8"
 
 [feature.docs.tasks]
 clean-docs = { cmd = "rm -rf generated/ jupyter_execute/ _build/", cwd = "docs" }
-build-docs = { cmd = "python -m sphinx -b html -w warnings.log -W -Tn -j auto . _build", cwd = "docs" }
-autobuild-docs = { cmd = "sphinx-autobuild -b html -w warnings.log -W -Tn -j auto . _build", cwd = "docs" }
+build-docs = { cmd = "python -m sphinx -b html -w warnings.log -W -Tn -j auto . _build/html", cwd = "docs" }
+autobuild-docs = { cmd = "sphinx-autobuild -b html -w warnings.log -W -Tn -j auto . _build/html", cwd = "docs" }
 build-docs-rtd = { cmd = "python -m sphinx -b html -W -T -j auto . $READTHEDOCS_OUTPUT/html", cwd = "docs" }
 host-docs = { cmd = "python -m http.server -b 127.0.0.1 -d _build/html 5447", cwd = "docs" }
 
@@ -92,6 +142,14 @@ build-clean-and-host-docs = [
   { task = "host-docs" },
 ]
 
+[tasks.build-and-host]
+depends-on = [
+  { task = "build-emscripten" },
+  { task = "create-channel" },
+  { task = "create-environment" },
+  { task = "build-docs" },
+  { task = "host-docs" },
+]
 
 [environments]
 dev = ["tests", "py313", "dev"]
@@ -102,4 +160,6 @@ py314 = ["py314"]
 ci-py311 = ["py311", "tests"]
 ci-py312 = ["py312", "tests"]
 ci-py313 = ["py313", "tests"]
+jupyterlite = { no-default-feature = true, features = ["jupyterlite"] }
 docs = ["docs", "py313"]
+templates = ["templates"]

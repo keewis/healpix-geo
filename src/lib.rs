@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 
 mod ellipsoid;
-#[macro_use]
 mod execution;
 mod geometry;
 mod hierarchy;
@@ -51,6 +50,7 @@ mod geometry_ {
 }
 
 #[pymodule]
+#[pyo3(name = "healpix_geo")]
 mod healpix_geo {
     #[pymodule_export]
     use super::nested;

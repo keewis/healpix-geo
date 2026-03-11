@@ -37,7 +37,7 @@ def healpix_to_lonlat(ipix, depth, ellipsoid="sphere", num_threads=0):
     --------
     >>> from healpix_geo.ring import healpix_to_lonlat
     >>> import numpy as np
-    >>> cell_ids = np.array([42, 6, 10])
+    >>> ipix = np.array([42, 6, 10])
     >>> depth = 3
     >>> lon, lat = healpix_to_lonlat(ipix, depth, ellipsoid="WGS84")
     """
@@ -202,12 +202,12 @@ def kth_neighbourhood(ipix, depth, ring, num_threads=0):
 
     Examples
     --------
-    >>> from cdshealpix import neighbours_in_kth_ring
+    >>> from healpix_geo.ring import kth_neighbourhood
     >>> import numpy as np
     >>> ipix = np.array([42, 6, 10])
     >>> depth = 12
     >>> ring = 3
-    >>> neighbours = neighbours_in_kth_ring(ipix, depth, ring)
+    >>> neighbours = kth_neighbourhood(ipix, depth, ring)
     """
     _check_depth(depth)
     ipix = np.atleast_1d(ipix)

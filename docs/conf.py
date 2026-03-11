@@ -47,6 +47,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx_design",
+    "jupyterlite_sphinx",
     "myst_nb",
 ]
 
@@ -87,6 +88,17 @@ napoleon_type_aliases = {
     "ellipsoid-like": ":term:`ellipsoid-like`",
     "array-like": ":py:class:`numpy.ndarray`",
 }
+
+# -- jupyterlite-sphinx ------------------------------------------------------
+
+global_enable_try_examples = True
+try_examples_global_button_text = "Try it in your browser!"
+try_examples_global_warning_text = (
+    "Interactive examples are experimental and may not always work as expected."
+)
+
+# unsilence to see the error message of jupyter lite build
+jupyterlite_silence = False
 
 # -- myst-parser -------------------------------------------------------------
 
