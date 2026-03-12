@@ -18,7 +18,7 @@ Conversions between geographic coordinates and HEALPix indices.
    vertices
 
 .. seealso::
-   Tutorial complete : :doc:`tutorials/coordinate_conversion`
+   Tutorial complete : :doc:`../tutorials/coordinate_conversion`
 
 Hierarchy and neighborhood
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,7 +33,7 @@ Navigation in the hierarchical structure of HEALPix.
    siblings
 
 .. seealso::
-   Complete tutorial : :doc:`user-guide/hierarchical_indexing`
+   Complete tutorial : :doc:`../user-guide/hierarchical_indexing`
 
 Cover Requests
 ~~~~~~~~~~~~~~~
@@ -52,7 +52,7 @@ Find all the cells which intersect a region.
 
 
 .. seealso::
-   Complete tutorial : :doc:`tutorials/coverage_queries`
+   Complete tutorial : :doc:`../tutorials/coverage_queries`
 
 Distance Calculations
 ~~~~~~~~~~~~~~~~~~~~~

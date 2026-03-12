@@ -17,7 +17,7 @@ Conversions between schemes nested et zuniq.
    to_nested
 
 .. seealso::
-   Complete tutorial : :doc:`tutorials/coordinate_conversion`
+   Complete tutorial : :doc:`../tutorials/coordinate_conversion`
 
 
 Coordinates Conversions
