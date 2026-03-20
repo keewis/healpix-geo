@@ -222,7 +222,7 @@ def kth_neighbourhood(
     >>> grid
     Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
     >>> ring = 3
-    >>> neighbours = kth_neighbourhood(ipix, grid, ring=ring)
+    >>> neighbours = hg.kth_neighbourhood(ipix, grid, ring=ring)
     >>> neighbours
     array([[       42,  72701309,  72701311,  72701397,       128,       129,
                    43,        41,        40,  72701302,  72701308,  72701310,
@@ -252,13 +252,9 @@ def kth_neighbourhood(
                    15,        13,         7,         5,         4,         1,
                     0]])
     """
-    if grid.indexing_scheme == "zuniq":
-        raise NotImplementedError(
-            "zuniq is not supported for now. Please use convert to `nested`,"
-            " compute the neighbours, and convert back."
-        )
-
     module = _dispatch_module(grid.indexing_scheme)
-    params = {"depth": grid.level}
+    params = {}
+    if grid.indexing_scheme != "zuniq":
+        params["depth"] = grid.level
 
     return module.kth_neighbourhood(ipix, ring=ring, num_threads=num_threads, **params)
