@@ -233,7 +233,45 @@ def bilinear_interpolation(
     Raises
     ------
     ValueError
-        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth}[`.
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth})`.
+
+    Examples
+    --------
+    >>> from healpix_geo.nested import bilinear_interpolation
+    >>> import numpy as np
+
+    Define coordinates
+    >>> lon = np.array([-15.0, -10.0, -5.0, 0.0, 5.0])
+    >>> lat = np.array([30.0, 35.0, 40.0, 45.0, 50.0])
+
+    Compute interpolation weights
+    >>> cell_ids, weights = bilinear_interpolation(lon, lat, depth=6, ellipsoid="WGS84")
+    >>> cell_ids
+    MArray(
+        array([[13400, 13401, 13402, 13403],
+               [13581, 13592, 13583, 13594],
+               [13638, 13639, 13644, 13645],
+               [ 2735,  2746, 13663, 13685],
+               [ 2800,  2801,  2802,  2803]], dtype=uint64),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    >>> weights
+    MArray(
+        array([[0.22596183, 0.68795133, 0.02128467, 0.06480216],
+               [0.15244623, 0.78751507, 0.00973729, 0.05030142],
+               [0.04859157, 0.12318081, 0.23429192, 0.5939357 ],
+               [0.32719215, 0.17280785, 0.32719215, 0.17280785],
+               [0.14255714, 0.34522269, 0.1497    , 0.36252017]]),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
     """
     _check_depth(depth)
     longitude = np.atleast_1d(longitude).astype("float64")
