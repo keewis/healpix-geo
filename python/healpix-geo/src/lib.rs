@@ -24,7 +24,9 @@ mod nested {
 mod ring {
     #[pymodule_export]
     use crate::indexing_schemes::ring::{
-        angular_distances, healpix_to_lonlat, kth_neighbourhood, lonlat_to_healpix, vertices,
+        angular_distances, box_coverage, cone_coverage, elliptical_cone_coverage,
+        healpix_to_lonlat, kth_neighbourhood, lonlat_to_healpix, polygon_coverage, vertices,
+        zone_coverage,
     };
 }
 
