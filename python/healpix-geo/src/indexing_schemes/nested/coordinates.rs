@@ -122,7 +122,7 @@ pub(crate) fn bilinear_interpolation<'py>(
             .map(|row: Vec<(u64, f64)>| -> (Vec<u64>, Vec<f64>) { row.into_iter().unzip() })
             .unzip();
 
-    let output_shape: Vec<usize> = input_shape.iter().copied().chain([ipix.len()]).collect();
+    let output_shape: Vec<usize> = input_shape.iter().copied().chain([ipix[0].len()]).collect();
 
     let ipix_ = PyArray2::from_vec2(py, &ipix)?.reshape(output_shape.as_slice())?;
     let weights_ = PyArray2::from_vec2(py, &weights)?.reshape(output_shape.as_slice())?;
