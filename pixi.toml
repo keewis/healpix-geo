@@ -22,9 +22,6 @@ depends-on = [
   { task = "build-wheel", environment = "py314" },
 ]
 
-[tasks.tests]
-depends-on = [{ task = "run-tests", environment = "dev" }]
-
 [tasks.ci-lint-rust]
 depends-on = [{ task = "rust-lints", environment = "py313" }]
 
@@ -48,7 +45,7 @@ shapely = "*"
 cdshealpix = "*"
 
 [feature.tests.tasks]
-run-tests = { cmd = "pytest --cov=healpix_geo", cwd = "python/healpix-geo" }
+tests = { cmd = "pytest --cov=healpix_geo", cwd = "python/healpix-geo", default-environment = "dev" }
 doctests = { cmd = "pytest --doctest-modules python/healpix_geo --ignore python/healpix_geo/tests", default-environment = "dev", cwd = "python/healpix-geo" }
 
 [feature.py311.dependencies]
