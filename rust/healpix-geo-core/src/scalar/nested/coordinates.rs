@@ -41,7 +41,7 @@ pub fn bilinear_interpolation(
     ellipsoid: &Ellipsoid,
 ) -> (Vec<u64>, Vec<f64>) {
     let lon_ = lon.rem_euclid(360.0).to_radians();
-    let lat_ = ellipsoid.latitude_geographic_to_authalic(lat.radians());
+    let lat_ = ellipsoid.latitude_geographic_to_authalic(lat.to_radians());
 
     let (hashes, weights): (Vec<u64>, Vec<f64>) =
         layer.bilinear_interpolation(lon_, lat_).into_iter().unzip();
