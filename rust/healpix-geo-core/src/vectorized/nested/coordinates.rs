@@ -105,6 +105,6 @@ mod tests {
                 (123, 0.05572124567322935),
             ],
         ];
-        assert_eq!(actual, expected)
+        assert_eq!(actual, expected);
     }
 }

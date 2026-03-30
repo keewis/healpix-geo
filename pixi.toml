@@ -2,15 +2,13 @@
 channels = ["conda-forge"]
 name = "healpix-geo"
 platforms = ["linux-64", "win-64", "osx-arm64"]
+preview = ["pixi-build"]
+
+[workspace.build-variants]
+python = ["3.11.*", "3.12.*", "3.13.*", "3.14.*"]
 
 [dependencies]
-rust = ">=1.94.0"
-maturin = ">=1.12.6"
-numpy = ">=2.3.5"
-marray-python = ">=0.0.12"
-
-[pypi-dependencies]
-healpix-geo = { path = "python/healpix-geo", editable = true }
+healpix-geo = { path = "python/healpix-geo" }
 
 [tasks.build-wheel]
 cmd = "maturin build -r --compatibility manylinux_2_28 --strip --auditwheel repair"
@@ -23,9 +21,6 @@ depends-on = [
   { task = "build-wheel", environment = "py313" },
   { task = "build-wheel", environment = "py314" },
 ]
-
-[tasks.tests]
-depends-on = [{ task = "run-tests", environment = "dev" }]
 
 [tasks.ci-lint-rust]
 depends-on = [{ task = "rust-lints", environment = "py313" }]
@@ -50,7 +45,7 @@ shapely = "*"
 cdshealpix = "*"
 
 [feature.tests.tasks]
-run-tests = { cmd = "pytest --cov=healpix_geo", cwd = "python/healpix-geo" }
+tests = { cmd = "pytest --cov=healpix_geo", cwd = "python/healpix-geo", default-environment = "dev" }
 doctests = { cmd = "pytest --doctest-modules python/healpix_geo --ignore python/healpix_geo/tests", default-environment = "dev", cwd = "python/healpix-geo" }
 
 [feature.py311.dependencies]
