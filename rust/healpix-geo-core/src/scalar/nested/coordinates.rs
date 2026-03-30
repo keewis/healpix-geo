@@ -48,3 +48,35 @@ pub fn bilinear_interpolation(
 
     (hashes, weights)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ellipsoid::ReferenceEllipsoid;
+    use cdshealpix as healpix;
+    use geodesy::ellps::Ellipsoid as GeodesyEllipsoid;
+
+    #[test]
+    fn test_bilinear_interpolation() {
+        let layer = healpix::nested::get(1);
+        let ellipsoid = Ellipsoid::Ellipsoid(ReferenceEllipsoid::new(
+            GeodesyEllipsoid::named("WGS84").unwrap(),
+        ));
+
+        let lon = 45.0;
+        let lat = 60.0;
+
+        let (ipix, weights) = bilinear_interpolation(&lon, &lat, layer, &ellipsoid);
+
+        assert_eq!(ipix, vec![0, 1, 2, 3]);
+        assert_eq!(
+            weights,
+            vec![
+                0.018569674659181364,
+                0.11770091886407795,
+                0.11770091886407795,
+                0.7460284876126627
+            ]
+        );
+    }
+}
