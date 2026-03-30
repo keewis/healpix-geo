@@ -39,14 +39,11 @@ pub fn bilinear_interpolation(
     lat: &f64,
     layer: &Layer,
     ellipsoid: &Ellipsoid,
-) -> (Vec<u64>, Vec<f64>) {
+) -> Vec<(u64, f64)> {
     let lon_ = lon.rem_euclid(360.0).to_radians();
     let lat_ = ellipsoid.latitude_geographic_to_authalic(lat.to_radians());
 
-    let (hashes, weights): (Vec<u64>, Vec<f64>) =
-        layer.bilinear_interpolation(lon_, lat_).into_iter().unzip();
-
-    (hashes, weights)
+    layer.bilinear_interpolation(lon_, lat_).to_vec()
 }
 
 #[cfg(test)]
@@ -66,7 +63,10 @@ mod tests {
         let lon = 45.0;
         let lat = 60.0;
 
-        let (ipix, weights) = bilinear_interpolation(&lon, &lat, layer, &ellipsoid);
+        let (ipix, weights): (Vec<u64>, Vec<f64>) =
+            bilinear_interpolation(&lon, &lat, layer, &ellipsoid)
+                .into_iter()
+                .unzip();
 
         assert_eq!(ipix, vec![0, 1, 2, 3]);
         assert_eq!(
