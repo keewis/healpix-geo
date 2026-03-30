@@ -264,12 +264,8 @@ def bilinear_interpolation(
 
     num_threads = np.uint16(num_threads)
 
-    shape = longitude.shape + (4,)
-    ipix = np.empty(shape=shape, dtype="uint64")
-    weights = np.empty(shape=shape, dtype="float64")
-
-    healpix_geo.nested.bilinear_interpolation(
-        depth, longitude, latitude, ellipsoid, ipix, weights, num_threads
+    ipix, weights = healpix_geo.nested.bilinear_interpolation(
+        depth, longitude, latitude, ellipsoid, num_threads
     )
 
     xp = marray.masked_namespace(np)
