@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Literal
+from typing import Any, Literal, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -38,12 +38,15 @@ class Grid:
     ellipsoid: EllipsoidLike = "sphere"
     """The reference ellipsoid of the grid."""
 
-    def _as_params(self):
+    def _as_params(self) -> dict[str, Any]:
         params = {"ellipsoid": self.ellipsoid}
         if self.indexing_scheme != "zuniq":
             params["depth"] = self.level
 
         return params
+
+    def from_user_input(self, data) -> Self:
+        pass
 
 
 def healpix_to_lonlat(
