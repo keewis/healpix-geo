@@ -14,7 +14,7 @@ pub fn lonlat_to_healpix(lon: &f64, lat: &f64, layer: &Layer, ellipsoid: &Ellips
     let hash_nested =
         crate::scalar::nested::coordinates::lonlat_to_healpix(lon, lat, layer, ellipsoid);
 
-    healpix::nested::to_zuniq(layer.depth(), hash_nested)
+    healpix::nested::to_zuniq_unsafe(layer.depth(), hash_nested)
 }
 
 pub fn vertices(hash: &u64, ellipsoid: &Ellipsoid, step: &usize) -> Vec<(f64, f64)> {
