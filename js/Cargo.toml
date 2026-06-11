@@ -12,3 +12,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2.123"
+healpix-geo-core = { workspace = true }
+cdshealpix = { workspace = true }
+js-sys = "0.3.100"
