@@ -11,8 +11,9 @@ use crate::ellipsoid::Ellipsoid;
 pub fn healpix_to_lonlat(hash: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
+    let hash_ = layer.from_ring(hash);
 
-    let (lon, lat) = scalar::healpix_to_lonlat(layer.from_ring(hash), depth, &ellipsoid_);
+    let (lon, lat) = scalar::healpix_to_lonlat(&hash_, layer, &ellipsoid_);
 
     Coordinate { lon, lat }
 }
