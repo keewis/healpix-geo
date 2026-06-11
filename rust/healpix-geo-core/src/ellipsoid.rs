@@ -4,6 +4,7 @@ use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize};
 use serde::{de, ser};
 use std::collections::HashMap;
+use std::default::Default;
 use std::fmt;
 
 pub trait ReferenceBody {
@@ -21,6 +22,14 @@ pub struct ReferenceSphere {
 impl ReferenceSphere {
     pub fn new(ellipsoid: GeodesyEllipsoid) -> Self {
         Self { ellipsoid }
+    }
+}
+
+impl Default for ReferenceSphere {
+    fn default() -> Self {
+        Self {
+            ellipsoid: GeodesyEllipsoid::named("sphere").unwrap(),
+        }
     }
 }
 
