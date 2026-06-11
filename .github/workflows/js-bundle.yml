@@ -36,13 +36,13 @@ jobs:
           mkdir -p build/nodejs
           wasm-pack build js --release --target nodejs --out-name healpix_geo --out-dir build/nodejs
 
-          ls -l build/nodejs
+          ls -l js/build/nodejs
 
       - name: Upload node bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-nodejs
-          path: build/nodejs/*
+          path: js/build/nodejs/*
           if-no-files-found: "error"
 
       - name: build esm bundle
@@ -50,13 +50,13 @@ jobs:
           mkdir -p build/esm
           wasm-pack build js --release --target web --out-name healpix_geo --out-dir build/esm
 
-          ls -l build/esm
+          ls -l js/build/esm
 
       - name: Upload esm bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-esm
-          path: build/esm/*
+          path: js/build/esm/*
           if-no-files-found: "error"
 
       - name: build bundler bundle
@@ -64,11 +64,11 @@ jobs:
           mkdir -p build/bundler
           wasm-pack build js --release --target bundler --out-name healpix_geo --out-dir build/bundler
 
-          ls -l build/bundler
+          ls -l js/build/bundler
 
       - name: Upload bundler bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-bundler
-          path: build/bundler/*
+          path: js/build/bundler/*
           if-no-files-found: "error"
