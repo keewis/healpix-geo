@@ -1,6 +1,6 @@
 use cdshealpix as healpix;
-use healpix_geo_core::scalar::ring::coordinates as scalar;
 use healpix_geo_core::ellipsoid::ReferenceBody;
+use healpix_geo_core::scalar::nested::coordinates as scalar;
 use wasm_bindgen::prelude::*;
 
 use crate::coordinates::Coordinate;
@@ -8,12 +8,11 @@ use crate::ellipsoid::Ellipsoid;
 
 /// Center coordinates for the given cell
 #[wasm_bindgen]
-pub fn healpix_to_lonlat(ipix: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
+pub fn healpix_to_lonlat(hash: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
-
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 
-    let (lon, lat) = scalar::healpix_to_lonlat(layer.from_ring(ipix), layer, &ellipsoid_);
+    let (lon, lat) = scalar::healpix_to_lonlat(layer.from_ring(hash), depth, &ellipsoid_);
 
     Coordinate { lon, lat }
 }
@@ -39,6 +38,6 @@ pub fn vertex(hash: u64, depth: u8, u: f64, v: f64, ellipsoid: Option<Ellipsoid>
 
     Coordinate {
         lon: lon.to_degrees().rem_euclid(360.0),
-        lat: ellipsoid_.latitude_authalic_to_geographic(lat).to_degrees()
+        lat: ellipsoid_.latitude_authalic_to_geographic(lat).to_degrees(),
     }
 }
