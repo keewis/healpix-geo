@@ -1,0 +1,14 @@
+[package]
+name = "healpix-geo-wasm"
+version = "0.1.3"
+authors = ["Justus Magin <keewis@posteo.de>"]
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/GRID4EARTH/healpix-geo"
+categories = ["wasm", "science::geo"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.123"
