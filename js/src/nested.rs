@@ -1,4 +1,5 @@
 use cdshealpix as healpix;
+use healpix_geo_core::ellipsoid::ReferenceBody;
 use healpix_geo_core::scalar::nested::coordinates as scalar;
 use wasm_bindgen::prelude::*;
 
@@ -22,4 +23,20 @@ pub fn lonlat_to_healpix(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellips
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 
     scalar::lonlat_to_healpix(&lon, &lat, layer, &ellipsoid_)
+}
+
+/// Single vertex of the given cell
+///
+/// The parameters `u` and `v` represent offsets from the southern vertex of the given cell.
+#[wasm_bindgen]
+pub fn vertex(hash: u64, depth: u8, u: f64, v: f64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
+    let layer = healpix::nested::get(depth);
+    let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
+
+    let (lon, lat) = layer.sph_coo(hash, u, v);
+
+    Coordinate {
+        lon: lon.to_degrees().rem_euclid(360.0),
+        lat: ellipsoid_.latitude_authalic_to_geographic(lat).to_degrees(),
+    }
 }
