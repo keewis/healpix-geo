@@ -13,19 +13,19 @@ pub enum Ellipsoid {
 
 #[wasm_bindgen]
 pub struct EllipsoidInverse {
-    semi_major_axis: f64,
-    inverse_flattening: f64,
+    pub semi_major_axis: f64,
+    pub inverse_flattening: f64,
 }
 
 #[wasm_bindgen]
 pub struct EllipsoidSemiMinor {
-    semi_major_axis: f64,
-    semi_minor_axis: f64,
+    pub semi_major_axis: f64,
+    pub semi_minor_axis: f64,
 }
 
 #[wasm_bindgen]
 pub struct Sphere {
-    radius: f64,
+    pub radius: f64,
 }
 
 impl Ellipsoid {
