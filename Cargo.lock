@@ -516,6 +516,7 @@ name = "healpix-geo-wasm"
 version = "0.1.3"
 dependencies = [
  "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=0c76809be71e248ed137b9d68f10746d0418d413)",
+ "geodesy",
  "healpix-geo-core",
  "js-sys",
  "wasm-bindgen",

@@ -25,14 +25,6 @@ impl ReferenceSphere {
     }
 }
 
-impl Default for ReferenceSphere {
-    fn default() -> Self {
-        Self {
-            ellipsoid: GeodesyEllipsoid::named("sphere").unwrap(),
-        }
-    }
-}
-
 impl ReferenceBody for ReferenceSphere {
     fn latitude_authalic_to_geographic(&self, latitude: f64) -> f64 {
         latitude
@@ -304,6 +296,14 @@ impl ReferenceBody for Ellipsoid {
         } else {
             Self::Sphere(ReferenceSphere::from_mapping(mapping))
         }
+    }
+}
+
+impl Default for Ellipsoid {
+    fn default() -> Self {
+        Self::Sphere(ReferenceSphere {
+            ellipsoid: GeodesyEllipsoid::named("sphere").unwrap(),
+        })
     }
 }
 
