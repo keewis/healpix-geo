@@ -7,7 +7,7 @@ use crate::coordinates::Coordinate;
 use crate::ellipsoid::Ellipsoid;
 
 /// Center coordinates for the given cell
-#[wasm_bindgen(js_namespace = "healpix_geo.nested")]
+#[wasm_bindgen(js_namespace = "nested")]
 pub fn healpix_to_lonlat(ipix: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
 
