@@ -7,8 +7,8 @@ use crate::coordinates::Coordinate;
 use crate::ellipsoid::Ellipsoid;
 
 /// Center coordinates for the given cell
-#[wasm_bindgen]
-pub fn healpix_to_lonlat_ring(hash: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
+#[wasm_bindgen(js_namespace = "ring")]
+pub fn healpix_to_lonlat(hash: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
     let hash_ = layer.from_ring(hash);
@@ -19,8 +19,8 @@ pub fn healpix_to_lonlat_ring(hash: u64, depth: u8, ellipsoid: Option<Ellipsoid>
 }
 
 /// Project the given coordinate to the healpix grid
-#[wasm_bindgen]
-pub fn lonlat_to_healpix_ring(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellipsoid>) -> u64 {
+#[wasm_bindgen(js_namespace = "ring")]
+pub fn lonlat_to_healpix(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellipsoid>) -> u64 {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 
@@ -30,14 +30,8 @@ pub fn lonlat_to_healpix_ring(lon: f64, lat: f64, depth: u8, ellipsoid: Option<E
 /// Single vertex of the given cell
 ///
 /// The parameters `u` and `v` represent offsets from the southern vertex of the given cell.
-#[wasm_bindgen]
-pub fn vertex_ring(
-    hash: u64,
-    depth: u8,
-    u: f64,
-    v: f64,
-    ellipsoid: Option<Ellipsoid>,
-) -> Coordinate {
+#[wasm_bindgen(js_namespace = "ring")]
+pub fn vertex(hash: u64, depth: u8, u: f64, v: f64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 

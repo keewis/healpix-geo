@@ -7,8 +7,8 @@ use crate::coordinates::Coordinate;
 use crate::ellipsoid::Ellipsoid;
 
 /// Center coordinates for the given cell
-#[wasm_bindgen]
-pub fn healpix_to_lonlat_zuniq(hash: u64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
+#[wasm_bindgen(js_namespace = "zuniq")]
+pub fn healpix_to_lonlat(hash: u64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 
     let (lon, lat) = scalar::healpix_to_lonlat(&hash, &ellipsoid_);
@@ -17,8 +17,8 @@ pub fn healpix_to_lonlat_zuniq(hash: u64, ellipsoid: Option<Ellipsoid>) -> Coord
 }
 
 /// Project the given coordinate to the healpix grid
-#[wasm_bindgen]
-pub fn lonlat_to_healpix_zuniq(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellipsoid>) -> u64 {
+#[wasm_bindgen(js_namespace = "zuniq")]
+pub fn lonlat_to_healpix(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellipsoid>) -> u64 {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 
@@ -28,8 +28,8 @@ pub fn lonlat_to_healpix_zuniq(lon: f64, lat: f64, depth: u8, ellipsoid: Option<
 /// Single vertex of the given cell
 ///
 /// The parameters `u` and `v` represent offsets from the southern vertex of the given cell.
-#[wasm_bindgen]
-pub fn vertex_zuniq(hash: u64, u: f64, v: f64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
+#[wasm_bindgen(js_namespace = "zuniq")]
+pub fn vertex(hash: u64, u: f64, v: f64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let (depth, nested) = healpix::nested::from_zuniq(hash);
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
