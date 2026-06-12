@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::coordinates::Coordinate;
 use crate::ellipsoid::Ellipsoid;
+use crate::geometry::spherical_vertex;
 
 /// Center coordinates for the given cell
 #[wasm_bindgen(js_name = healpixToLonLatZuniq)]
@@ -34,10 +35,55 @@ pub fn vertex(hash: u64, u: f64, v: f64, ellipsoid: Option<Ellipsoid>) -> Coordi
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
 
-    let (lon, lat) = layer.sph_coo(nested, u, v);
+    let center = layer.center_of_projected_cell(nested);
+    let (lon, lat) = spherical_vertex(center, depth, (u, v));
 
     Coordinate {
         lon: lon.to_degrees().rem_euclid(360.0),
         lat: ellipsoid_.latitude_authalic_to_geographic(lat).to_degrees(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vertex() {
+        let hash: u64 = 288230376151711744;
+
+        let uv: Vec<(f64, f64)> = vec![
+            (0.0, 0.0),
+            (0.5, 0.0),
+            (1.0, 0.0),
+            (1.0, 0.5),
+            (1.0, 1.0),
+            (0.5, 1.0),
+            (0.0, 1.0),
+            (0.0, 0.5),
+        ];
+
+        let values = uv
+            .into_iter()
+            .map(|(u, v)| vertex(hash, u, v, None))
+            .collect::<Vec<_>>();
+        let expected: Vec<Coordinate> = vec![
+            (45.0, 0.0),
+            (67.5, 19.47122063),
+            (90.0, 41.8103149),
+            (90.0, 66.44353569),
+            (45.0, 90.0),
+            (0.0, 66.44353569),
+            (0.0, 41.8103149),
+            (22.5, 19.47122063),
+        ]
+        .into_iter()
+        .map(|(lon, lat)| Coordinate { lon, lat })
+        .collect();
+
+        for (a, b) in values.into_iter().zip(expected) {
+            assert!((a.lon - b.lon).abs() < 1e-4);
+            assert!((a.lat - b.lat).abs() < 1e-4);
+        }
     }
 }
