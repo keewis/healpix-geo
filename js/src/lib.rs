@@ -15,3 +15,5 @@ use wasm_bindgen::prelude::*;
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
+
+pub use crate::nested::vertex as vertex_nested;
