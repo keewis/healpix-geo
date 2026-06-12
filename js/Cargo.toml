@@ -17,3 +17,4 @@ cdshealpix = { workspace = true }
 geodesy = { workspace = true }
 uuid = { version = "1.23.3", features = ["rng-getrandom"] }
 getrandom = { version = "0.4.2", features = ["wasm_js"] }
+console_error_panic_hook = "0.1.7"
