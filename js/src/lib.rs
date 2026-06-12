@@ -2,7 +2,6 @@ mod coordinates;
 mod geometry;
 
 pub mod ellipsoid;
-#[wasm_bindgen]
 pub mod nested;
 pub mod ring;
 pub mod zuniq;
@@ -12,19 +11,10 @@ use wasm_bindgen::prelude::*;
 pub use crate::coordinates::Coordinate;
 pub use crate::ellipsoid::Ellipsoid;
 
-// pub use crate::nested::{
-//     healpix_to_lonlat as healpix_to_lonlat_nested, lonlat_to_healpix as lonlat_to_healpix_nested,
-//     vertex as vertex_nested,
-// };
-
-// #[wasm_bindgen(js_name = nested)]
-// pub struct NestedNamespace {}
-
-// #[wasm_bindgen(js_name = nested)]
-// impl NestedNamespace {
-
-// }
-
+pub use crate::nested::{
+    healpix_to_lonlat as healpix_to_lonlat_nested, lonlat_to_healpix as lonlat_to_healpix_nested,
+    vertex as vertex_nested,
+};
 pub use crate::ring::{
     healpix_to_lonlat as healpix_to_lonlat_ring, lonlat_to_healpix as lonlat_to_healpix_ring,
     vertex as vertex_ring,
