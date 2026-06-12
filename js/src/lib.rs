@@ -17,5 +17,5 @@ pub fn init_panic_hook() {
 }
 
 pub mod nested_ {
-    use crate::nested::{healpix_to_latlon, lonlat_to_healpix, vertex};
+    use crate::nested::{healpix_to_lonlat, lonlat_to_healpix, vertex};
 }
