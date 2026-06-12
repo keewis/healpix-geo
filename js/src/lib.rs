@@ -17,3 +17,8 @@ pub fn init_panic_hook() {
 }
 
 pub use crate::nested::vertex as vertex_nested;
+
+#[wasm_bindgen]
+pub fn testing(a: u64) -> u64 {
+    a
+}
