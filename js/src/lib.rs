@@ -16,6 +16,7 @@ pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
+#[wasm_bindgen(js_namespace = "nested")]
 pub use crate::nested::vertex as vertex_nested;
 
 #[wasm_bindgen]
