@@ -1,4 +1,6 @@
 mod coordinates;
+mod geometry;
+
 pub mod ellipsoid;
 pub mod nested;
 pub mod ring;
