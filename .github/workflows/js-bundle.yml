@@ -34,7 +34,7 @@ jobs:
       - name: build node bundle
         run: |
           mkdir -p build/nodejs
-          wasm-pack build js --release --target nodejs --out-name healpix_geo --out-dir build/nodejs
+          wasm-pack build js --release --target nodejs --out-name index --out-dir build/nodejs
 
           ls -l js/build/nodejs
 
@@ -48,7 +48,7 @@ jobs:
       - name: build esm bundle
         run: |
           mkdir -p build/esm
-          wasm-pack build js --release --target web --out-name healpix_geo --out-dir build/esm
+          wasm-pack build js --release --target web --out-name index --out-dir build/esm
 
           ls -l js/build/esm
 
@@ -62,7 +62,7 @@ jobs:
       - name: build bundler bundle
         run: |
           mkdir -p build/bundler
-          wasm-pack build js --release --target bundler --out-name healpix_geo --out-dir build/bundler
+          wasm-pack build js --release --target bundler --out-name index --out-dir build/bundler
 
           ls -l js/build/bundler
 
