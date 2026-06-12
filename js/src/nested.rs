@@ -8,7 +8,7 @@ use crate::ellipsoid::Ellipsoid;
 use crate::geometry::spherical_vertex;
 
 /// Center coordinates for the given cell
-#[wasm_bindgen(js_namespace = "nested", js_name = healpixToLonLat)]
+#[wasm_bindgen(js_name = healpixToLonLatNested)]
 pub fn healpix_to_lonlat(ipix: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
 
@@ -20,7 +20,7 @@ pub fn healpix_to_lonlat(ipix: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> 
 }
 
 /// Project the given coordinate to the healpix grid
-#[wasm_bindgen(js_namespace = "nested", js_name = lonLatToHealpix)]
+#[wasm_bindgen(js_name = lonLatToHealpixNested)]
 pub fn lonlat_to_healpix(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellipsoid>) -> u64 {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
@@ -31,7 +31,7 @@ pub fn lonlat_to_healpix(lon: f64, lat: f64, depth: u8, ellipsoid: Option<Ellips
 /// Single vertex of the given cell
 ///
 /// The parameters `u` and `v` represent offsets from the southern vertex of the given cell.
-#[wasm_bindgen(js_namespace = "nested")]
+#[wasm_bindgen(js_name = vertexNested)]
 pub fn vertex(hash: u64, depth: u8, u: f64, v: f64, ellipsoid: Option<Ellipsoid>) -> Coordinate {
     let layer = healpix::nested::get(depth);
     let ellipsoid_ = ellipsoid.map(|e| e.into_ellipsoid()).unwrap_or_default();
