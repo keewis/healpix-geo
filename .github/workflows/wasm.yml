@@ -43,12 +43,12 @@ jobs:
       - name: build esm bundle
         run: |
           mkdir -p build/esm
-          wasm-pack build js --release --target web --out-name index --out-dir build/esm
+          wasm-pack build --release --target web --out-name index --out-dir build/esm
 
       - name: build bundler bundle
         run: |
           mkdir -p build/bundler
-          wasm-pack build js --release --target bundler --out-name index --out-dir build/bundler
+          wasm-pack build --release --target bundler --out-name index --out-dir build/bundler
 
       - name: assemble package
         run: |
