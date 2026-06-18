@@ -7,6 +7,15 @@ use crate::coordinates::Coordinate;
 use crate::ellipsoid::Ellipsoid;
 use crate::geometry::spherical_vertex;
 
+#[wasm_bindgen(js_name = bitCombinedRing)]
+pub fn bit_combine(depth: u8, j: u32, i: u32) -> u64 {
+    let layer = healpix::nested::get(depth);
+    let zoc = healpix::nested::zordercurve::get_zoc(depth);
+    let hash = zoc.ij2h(i, j);
+
+    layer.to_ring(hash)
+}
+
 /// Center coordinates for the given cell
 #[wasm_bindgen(js_name = healpixToLonLatRing)]
 pub fn healpix_to_lonlat(hash: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {

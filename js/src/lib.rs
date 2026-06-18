@@ -12,16 +12,16 @@ pub use crate::coordinates::Coordinate;
 pub use crate::ellipsoid::Ellipsoid;
 
 pub use crate::nested::{
-    healpix_to_lonlat as healpix_to_lonlat_nested, lonlat_to_healpix as lonlat_to_healpix_nested,
-    vertex as vertex_nested,
+    bit_combine as bit_combine_nested, healpix_to_lonlat as healpix_to_lonlat_nested,
+    lonlat_to_healpix as lonlat_to_healpix_nested, vertex as vertex_nested,
 };
 pub use crate::ring::{
-    healpix_to_lonlat as healpix_to_lonlat_ring, lonlat_to_healpix as lonlat_to_healpix_ring,
-    vertex as vertex_ring,
+    bit_combine as bit_combine_ring, healpix_to_lonlat as healpix_to_lonlat_ring,
+    lonlat_to_healpix as lonlat_to_healpix_ring, vertex as vertex_ring,
 };
 pub use crate::zuniq::{
-    healpix_to_lonlat as healpix_to_lonlat_zuniq, lonlat_to_healpix as lonlat_to_healpix_zuniq,
-    vertex as vertex_zuniq,
+    bit_combine as bit_combine_zuniq, healpix_to_lonlat as healpix_to_lonlat_zuniq,
+    lonlat_to_healpix as lonlat_to_healpix_zuniq, vertex as vertex_zuniq,
 };
 
 #[wasm_bindgen(start)]

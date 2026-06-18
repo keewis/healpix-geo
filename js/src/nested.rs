@@ -7,6 +7,13 @@ use crate::coordinates::Coordinate;
 use crate::ellipsoid::Ellipsoid;
 use crate::geometry::spherical_vertex;
 
+#[wasm_bindgen(js_name = bitCombinedNested)]
+pub fn bit_combine(depth: u8, j: u32, i: u32) -> u64 {
+    let zoc = healpix::nested::zordercurve::get_zoc(depth);
+
+    zoc.ij2h(i, j)
+}
+
 /// Center coordinates for the given cell
 #[wasm_bindgen(js_name = healpixToLonLatNested)]
 pub fn healpix_to_lonlat(ipix: u64, depth: u8, ellipsoid: Option<Ellipsoid>) -> Coordinate {
