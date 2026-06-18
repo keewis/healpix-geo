@@ -18,6 +18,10 @@ jobs:
     if: github.repository == 'GRID4EARTH/healpix-geo'
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: js
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -34,41 +38,37 @@ jobs:
       - name: build node bundle
         run: |
           mkdir -p build/nodejs
-          wasm-pack build js --release --target nodejs --out-name index --out-dir build/nodejs
-
-          ls -l js/build/nodejs
-
-      - name: Upload node bundle
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: bundle-nodejs
-          path: js/build/nodejs/*
-          if-no-files-found: "error"
+          wasm-pack build --release --target nodejs --out-name index --out-dir build/nodejs
 
       - name: build esm bundle
         run: |
           mkdir -p build/esm
           wasm-pack build js --release --target web --out-name index --out-dir build/esm
 
-          ls -l js/build/esm
-
-      - name: Upload esm bundle
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: bundle-esm
-          path: js/build/esm/*
-          if-no-files-found: "error"
-
       - name: build bundler bundle
         run: |
           mkdir -p build/bundler
           wasm-pack build js --release --target bundler --out-name index --out-dir build/bundler
 
-          ls -l js/build/bundler
+      - name: assemble package
+        run: |
+          mkdir -p pkg/{node,esm,bundler}
 
-      - name: Upload bundler bundle
+          cp build/bundler/index* pkg/bundler
+          cp build/esm/index* pkg/esm
+          cp build/nodejs/index* pkg/node
+
+          cp build/bundler/package.json pkg/
+
+          # minimal package.json for esm
+          echo '{"type": "module"}' > pkg/esm/package.json
+
+          jq '.files = ["*"] | .module = "bundler/index.js" | .types = "bundler/index.d.ts" | .name = "healpix-geo" pkg/package.json package.json.tmp
+          mv package.json.tmp pkg/package.json
+
+      - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: bundle-bundler
-          path: js/build/bundler/*
+          name: bundle
+          path: js/pkg/*
           if-no-files-found: "error"
