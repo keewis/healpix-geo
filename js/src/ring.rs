@@ -97,4 +97,15 @@ mod tests {
             assert!((a.lat - b.lat).abs() < 1e-4);
         }
     }
+
+    #[test]
+    fn test_bit_combine() {
+        let i = 0;
+        let j = 1;
+        let depth = 1;
+
+        let hash = bit_combine(depth, j, i);
+
+        assert_eq!(hash, 4);
+    }
 }
