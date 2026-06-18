@@ -60,6 +60,10 @@ jobs:
         run: |
           wasm-pack pack pkg
 
+      - name: list contents
+        run: |
+          find . -name "*.tgz"
+
       # - name: assemble package
       #   run: |
       #     mkdir -p pkg/{node,esm,bundler}
