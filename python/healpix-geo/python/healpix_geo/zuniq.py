@@ -1,3 +1,4 @@
+import marray
 import numpy as np
 
 from healpix_geo import healpix_geo
@@ -254,6 +255,99 @@ def vertices(ipix, ellipsoid, step=1, num_threads=0):
     num_threads = np.uint16(num_threads)
 
     return healpix_geo.zuniq.vertices(ipix, ellipsoid, step, num_threads)
+
+
+def bilinear_interpolation(
+    longitude, latitude, depth, *, ellipsoid="sphere", num_threads=0
+):
+    """Get the cell ids and weights necessary to bilinearly interpolate the given values.
+
+    Parameters
+    ----------
+    longitude : array-like
+        The longitudes of the input points, in degrees.
+    latitude : array-like
+        The latitudes of the input points, in degrees.
+    depth : int or array-like
+        The depth of the HEALPix cells.
+    ellipsoid : ellipsoid-like, default: "sphere"
+        Reference ellipsoid to evaluate healpix on. If the reference ellipsoid
+        is spherical, this will return the same result as
+        :py:func:`cdshealpix.nested.vertices`.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    cell_ids : array-like
+        The neighbours above and below the given points as a :math:`N` x :math:`4` masked array.
+    weights : array-like
+        The associated weights as a :math:`N` x :math:`4` masked array.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth})`.
+
+    Examples
+    --------
+    >>> from healpix_geo.zuniq import bilinear_interpolation
+    >>> import numpy as np
+
+    Define coordinates
+    >>> lon = np.array([-15.0, -10.0, -5.0, 0.0, 5.0])
+    >>> lat = np.array([30.0, 35.0, 40.0, 45.0, 50.0])
+
+    Compute interpolation weights
+    >>> cell_ids, weights = bilinear_interpolation(lon, lat, depth=6, ellipsoid="WGS84")
+    >>> cell_ids
+    MArray(
+        array([[1885952712705572864, 1886093450193928192, 1886234187682283520,
+                1886374925170638848],
+               [1911426198097887232, 1912974310469795840, 1911707673074597888,
+                1913255785446506496],
+               [1919448234934140928, 1919588972422496256, 1920292659864272896,
+                1920433397352628224],
+               [ 384987399395999744,  386535511767908352, 1922966672143024128,
+                1926062896886841344],
+               [ 394135336139096064,  394276073627451392,  394416811115806720,
+                 394557548604162048]], dtype=uint64),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    >>> weights
+    MArray(
+        array([[0.22596183, 0.68795133, 0.02128467, 0.06480216],
+               [0.15244623, 0.78751507, 0.00973729, 0.05030142],
+               [0.04859157, 0.12318081, 0.23429192, 0.5939357 ],
+               [0.32719215, 0.17280785, 0.32719215, 0.17280785],
+               [0.14255714, 0.34522269, 0.1497    , 0.36252017]]),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    """
+    _check_depth(depth)
+    longitude = np.atleast_1d(longitude).astype("float64")
+    latitude = np.atleast_1d(latitude).astype("float64")
+
+    num_threads = np.uint16(num_threads)
+
+    ipix, weights = healpix_geo.zuniq.bilinear_interpolation(
+        depth, longitude, latitude, ellipsoid, num_threads
+    )
+
+    xp = marray.masked_namespace(np)
+    mask = weights == 0
+
+    return xp.asarray(ipix, mask=mask), xp.asarray(weights, mask=mask)
 
 
 def kth_neighbourhood(ipix, ring, num_threads=0):

@@ -2,6 +2,7 @@ use crate::ellipsoid::{Ellipsoid, ReferenceBody};
 
 use cdshealpix as healpix;
 use cdshealpix::compass_point::Cardinal;
+use cdshealpix::nested::Layer;
 
 pub fn healpix_to_lonlat(hash: &u64, nside: &u32, ellipsoid: &Ellipsoid) -> (f64, f64) {
     let center = healpix::ring::center(*nside, *hash);
@@ -40,6 +41,22 @@ pub fn vertices(hash: &u64, nside: &u32, ellipsoid: &Ellipsoid, step: &usize) ->
                 ellipsoid.latitude_authalic_to_geographic(lat).to_degrees(),
             )
         })
+        .collect()
+}
+
+pub fn bilinear_interpolation(
+    lon: &f64,
+    lat: &f64,
+    layer: &Layer,
+    ellipsoid: &Ellipsoid,
+) -> Vec<(u64, f64)> {
+    let lon_ = lon.rem_euclid(360.0).to_radians();
+    let lat_ = ellipsoid.latitude_geographic_to_authalic(lat.to_radians());
+
+    layer
+        .bilinear_interpolation(lon_, lat_)
+        .into_iter()
+        .map(|(hash, weight)| (layer.to_ring(hash), weight))
         .collect()
 }
 
