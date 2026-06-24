@@ -41,6 +41,31 @@ pub fn vertices(hash: &u64, layer: &Layer, ellipsoid: &Ellipsoid, step: &usize) 
         .collect()
 }
 
+pub fn healpix_to_cartesian(hash: &u64, layer: &Layer, ellipsoid: &Ellipsoid) -> (f64, f64, f64) {
+    let center = layer.center(*hash);
+    let p = (
+        center.0,
+        ellipsoid.latitude_authalic_to_geographic(center.1),
+    );
+
+    ellipsoid.geographic_to_cartesian(&p)
+}
+
+pub fn cartesian_to_healpix(
+    x: &f64,
+    y: &f64,
+    z: &f64,
+    layer: &Layer,
+    ellipsoid: &Ellipsoid,
+) -> u64 {
+    let p = (*x, *y, *z);
+    let (lon, lat) = ellipsoid.cartesian_to_geographic(&p);
+
+    let lat_ = ellipsoid.latitude_geographic_to_authalic(lat);
+
+    layer.hash(lon, lat_)
+}
+
 pub fn bilinear_interpolation(
     lon: &f64,
     lat: &f64,
@@ -59,6 +84,60 @@ mod tests {
     use crate::ellipsoid::ReferenceEllipsoid;
     use cdshealpix as healpix;
     use geodesy::ellps::Ellipsoid as GeodesyEllipsoid;
+
+    #[test]
+    fn test_healpix_to_cartesian_level0() {
+        let layer = healpix::nested::get(0);
+
+        let ellipsoid = Ellipsoid::Ellipsoid(ReferenceEllipsoid::new(
+            GeodesyEllipsoid::named("WGS84").unwrap(),
+        ));
+
+        let hash = 10;
+
+        let (x, y, z) = healpix_to_cartesian(&hash, layer, &ellipsoid);
+
+        let expected = (-3359899.1988056432, -3359899.1988056437, -4240471.602059038);
+
+        assert!((x - expected.0).abs() < 1e-8);
+        assert!((y - expected.1).abs() < 1e-8);
+        assert!((z - expected.2).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_healpix_to_cartesian_level3() {
+        let layer = healpix::nested::get(3);
+
+        let ellipsoid = Ellipsoid::Ellipsoid(ReferenceEllipsoid::new(
+            GeodesyEllipsoid::named("WGS84").unwrap(),
+        ));
+
+        let hash = 23;
+
+        let (x, y, z) = healpix_to_cartesian(&hash, layer, &ellipsoid);
+
+        let expected = (476237.29439881037, 4226722.89212488, 4736816.0469012465);
+
+        assert!((x - expected.0).abs() < 1e-8);
+        assert!((y - expected.1).abs() < 1e-8);
+        assert!((z - expected.2).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_cartesian_to_healpix_level3() {
+        let layer = healpix::nested::get(3);
+
+        let ellipsoid = Ellipsoid::Ellipsoid(ReferenceEllipsoid::new(
+            GeodesyEllipsoid::named("WGS84").unwrap(),
+        ));
+
+        let (x, y, z) = (476237.29439881037, 4226722.89212488, 4736816.0469012465);
+
+        let actual = cartesian_to_healpix(&x, &y, &z, layer, &ellipsoid);
+        let expected = 23;
+
+        assert_eq!(actual, expected);
+    }
 
     #[test]
     fn test_lonlat_to_healpix_edge_cases_lon() {
