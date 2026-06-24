@@ -5,6 +5,7 @@ mod execution;
 mod geometry;
 mod index;
 mod indexing_schemes;
+mod traits;
 
 #[pymodule]
 mod nested {
@@ -13,9 +14,10 @@ mod nested {
 
     #[pymodule_export]
     use crate::indexing_schemes::nested::{
-        angular_distances, box_coverage, cone_coverage, elliptical_cone_coverage,
-        healpix_to_lonlat, internal_boundary, kth_neighbourhood, lonlat_to_healpix,
-        polygon_coverage, siblings, vertices, zone_coverage, zoom_to,
+        angular_distances, bilinear_interpolation, box_coverage, cartesian_to_healpix,
+        cone_coverage, elliptical_cone_coverage, healpix_to_cartesian, healpix_to_lonlat,
+        internal_boundary, kth_neighbourhood, lonlat_to_healpix, polygon_coverage, siblings,
+        vertices, zone_coverage, zoom_to,
     };
 }
 
@@ -23,9 +25,9 @@ mod nested {
 mod ring {
     #[pymodule_export]
     use crate::indexing_schemes::ring::{
-        angular_distances, box_coverage, cone_coverage, elliptical_cone_coverage,
-        healpix_to_lonlat, kth_neighbourhood, lonlat_to_healpix, polygon_coverage, vertices,
-        zone_coverage,
+        angular_distances, bilinear_interpolation, box_coverage, cartesian_to_healpix,
+        cone_coverage, elliptical_cone_coverage, healpix_to_cartesian, healpix_to_lonlat,
+        kth_neighbourhood, lonlat_to_healpix, polygon_coverage, vertices, zone_coverage,
     };
 }
 
@@ -33,7 +35,8 @@ mod ring {
 mod zuniq {
     #[pymodule_export]
     use crate::indexing_schemes::zuniq::{
-        box_coverage, cone_coverage, elliptical_cone_coverage, from_nested, healpix_to_lonlat,
+        bilinear_interpolation, box_coverage, cartesian_to_healpix, cone_coverage,
+        elliptical_cone_coverage, from_nested, healpix_to_cartesian, healpix_to_lonlat,
         kth_neighbourhood, lonlat_to_healpix, polygon_coverage, to_nested, vertices, zone_coverage,
     };
 }
@@ -58,4 +61,7 @@ mod healpix_geo {
 
     #[pymodule_export]
     use crate::geometry_;
+
+    #[pymodule_export]
+    use crate::geometry::{cartesian_to_lonlat, lonlat_to_cartesian};
 }
