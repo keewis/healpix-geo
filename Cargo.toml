@@ -2,6 +2,7 @@
 members = [
   "rust/healpix-geo-core",
   "python/healpix-geo",
+  "js",
 ]
 resolver = "2"
 

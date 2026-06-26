@@ -327,6 +327,14 @@ impl ReferenceBody for Ellipsoid {
     }
 }
 
+impl Default for Ellipsoid {
+    fn default() -> Self {
+        Self::Sphere(ReferenceSphere {
+            ellipsoid: GeodesyEllipsoid::named("sphere").unwrap(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
