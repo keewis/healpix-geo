@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  release:
+    types: ["published"]
 
 concurrency:
   group: ${{ github.workflow }}.${{ github.ref }}
@@ -29,6 +31,8 @@ jobs:
           persist-credentials: false
 
       - name: Create rust cache
+        if: github.event_name != 'release'
+        # zizmor: ignore[cache-poisoning] # not used for releases
         uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           prefix-key: wasm32
@@ -130,7 +134,7 @@ jobs:
       url: https://npmjs.com/package/healpix-geo
 
     permissions:
-      id-token: write
+      id-token: write # upload packages to npm
 
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1

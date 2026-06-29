@@ -36,6 +36,7 @@ jobs:
           keyword: "[skip-ci]"
 
   cache-pixi-lock:
+    name: cache pixi.lock
     runs-on: ubuntu-slim
     needs: detect-ci-trigger
     if: |
@@ -62,8 +63,7 @@ jobs:
     name: ${{ matrix.os }} | ${{ matrix.env }}
     needs: cache-pixi-lock
     runs-on: ${{ matrix.os }}
-    env:
-      FORCE_COLOR: 3
+
     defaults:
       run:
         shell: bash -l {0}
@@ -77,6 +77,11 @@ jobs:
           - "windows-latest"
         env: ["ci-py311", "ci-py313", "ci-py314"]
 
+    env:
+      FORCE_COLOR: 3
+      ENV: ${{ matrix.env }}
+      RUNNER_OS: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -92,12 +97,12 @@ jobs:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
 
       - name: Create rust cache
-        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # 2.9.1
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           prefix-key: "py${{ matrix.python-version }}"
 
       - name: setup environment
-        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # 0.9.6
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
         with:
           environments: "${{ matrix.env }}"
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
@@ -106,7 +111,7 @@ jobs:
 
       - name: Help finding installed libraries
         run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e '${{ matrix.env }}' 'echo $CONDA_PREFIX')
+          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
           if [[ -z "$CONDA_PREFIX" ]]; then
             echo "CONDA_PREFIX is unset!"
             exit 1
@@ -120,7 +125,7 @@ jobs:
       - name: Help the linker on macos
         if: runner.os == 'MacOS'
         run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e '${{ matrix.env }}' 'echo $CONDA_PREFIX')
+          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
 
           if [ ! -d target/debug/deps ]; then
               mkdir -p target/debug/deps
@@ -130,20 +135,19 @@ jobs:
       - name: Check imports
         run: |
           pixi run \
-              -e '${{ matrix.env }}' \
+              -e $ENV \
               --frozen \
               python -c 'import healpix_geo'
 
       - name: Run tests
         run: |
-          pixi run -e '${{ matrix.env }}' --frozen tests
+          pixi run -e $ENV --frozen tests
 
   doctests:
     name: doctests | ubuntu-latest | ${{ matrix.env }}
     needs: cache-pixi-lock
     runs-on: ubuntu-latest
-    env:
-      FORCE_COLOR: 3
+
     defaults:
       run:
         shell: bash -l {0}
@@ -152,6 +156,11 @@ jobs:
       matrix:
         env: ["ci-py313"]
 
+    env:
+      FORCE_COLOR: 3
+      ENV: ${{ matrix.env }}
+      RUNNER_OS: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -167,7 +176,7 @@ jobs:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
 
       - name: setup environment
-        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # 0.9.6
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
         with:
           environments: "${{ matrix.env }}"
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
@@ -175,13 +184,13 @@ jobs:
           frozen: true
 
       - name: Create rust cache
-        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # 2.9.1
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           prefix-key: "py${{ matrix.python-version }}"
 
       - name: Help finding installed libraries
         run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e '${{ matrix.env }}' 'echo $CONDA_PREFIX')
+          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
           if [[ -z "$CONDA_PREFIX" ]]; then
             echo "CONDA_PREFIX is unset!"
             exit 1
@@ -195,7 +204,7 @@ jobs:
       - name: Help the linker on macos
         if: runner.os == 'MacOS'
         run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e '${{ matrix.env }}' 'echo $CONDA_PREFIX')
+          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
 
           if [ ! -d target/debug/deps ]; then
               mkdir -p target/debug/deps
@@ -205,10 +214,10 @@ jobs:
       - name: Check imports
         run: |
           pixi run \
-              -e '${{ matrix.env }}' \
+              -e $ENV \
               --frozen \
               python -c 'import healpix_geo'
 
       - name: Run tests
         run: |
-          pixi run -e '${{ matrix.env }}' --frozen doctests
+          pixi run -e $ENV --frozen doctests
