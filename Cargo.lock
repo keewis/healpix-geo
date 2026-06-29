@@ -166,7 +166,7 @@ dependencies = [
  "chrono",
  "colorous",
  "flate2",
- "itertools",
+ "itertools 0.14.0",
  "katex-doc",
  "log",
  "mapproj",
@@ -183,7 +183,7 @@ dependencies = [
 [[package]]
 name = "cdshealpix"
 version = "0.9.1"
-source = "git+https://github.com/cds-astro/cds-healpix-rust.git?rev=0c76809be71e248ed137b9d68f10746d0418d413#0c76809be71e248ed137b9d68f10746d0418d413"
+source = "git+https://github.com/cds-astro/cds-healpix-rust.git?rev=d9d017cda85a097b65d200e3c4cccefc54665915#d9d017cda85a097b65d200e3c4cccefc54665915"
 dependencies = [
  "base64",
  "bincode",
@@ -191,7 +191,7 @@ dependencies = [
  "chrono",
  "colorous",
  "flate2",
- "itertools",
+ "itertools 0.14.0",
  "katex-doc",
  "log",
  "mapproj",
@@ -455,17 +455,19 @@ dependencies = [
 
 [[package]]
 name = "geodesy"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c1778eaef1f258c89d8d3f0fadb42ef70f4c714d237714fede0936285661c20"
+checksum = "2ef2bd803c1d8af10b606c25679c045abc04f36256955edc26f5952018b6afb7"
 dependencies = [
  "anyhow",
+ "byteorder",
  "clap",
  "clap-verbosity-flag",
  "dirs",
  "env_logger",
  "float_eq",
  "log",
+ "memmap2",
  "thiserror 1.0.69",
  "uuid",
  "wasm-bindgen",
@@ -516,11 +518,10 @@ checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 name = "healpix-geo"
 version = "0.1.3"
 dependencies = [
- "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=0c76809be71e248ed137b9d68f10746d0418d413)",
+ "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=d9d017cda85a097b65d200e3c4cccefc54665915)",
  "geodesy",
  "healpix-geo-core",
  "moc",
- "ndarray 0.16.1",
  "numpy",
  "pyo3",
  "rayon",
@@ -530,9 +531,9 @@ dependencies = [
 name = "healpix-geo-core"
 version = "0.1.3"
 dependencies = [
- "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=0c76809be71e248ed137b9d68f10746d0418d413)",
+ "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=d9d017cda85a097b65d200e3c4cccefc54665915)",
  "geodesy",
- "itertools",
+ "itertools 0.15.0",
  "moc",
  "num-traits",
  "rayon",
@@ -544,7 +545,7 @@ dependencies = [
 name = "healpix-geo-wasm"
 version = "0.1.3"
 dependencies = [
- "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=0c76809be71e248ed137b9d68f10746d0418d413)",
+ "cdshealpix 0.9.1 (git+https://github.com/cds-astro/cds-healpix-rust.git?rev=d9d017cda85a097b65d200e3c4cccefc54665915)",
  "console_error_panic_hook",
  "geodesy",
  "getrandom 0.4.2",
@@ -606,15 +607,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indoc"
-version = "2.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
-dependencies = [
- "rustversion",
-]
-
-[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -625,6 +617,15 @@ name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
 dependencies = [
  "either",
 ]
@@ -741,15 +742,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "memoffset"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
-dependencies = [
- "autocfg",
-]
-
-[[package]]
 name = "minicov"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -794,22 +786,6 @@ dependencies = [
  "serde_json",
  "stc-s",
  "thiserror 2.0.18",
-]
-
-[[package]]
-name = "ndarray"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
-dependencies = [
- "matrixmultiply",
- "num-complex",
- "num-integer",
- "num-traits",
- "portable-atomic",
- "portable-atomic-util",
- "rawpointer",
- "rayon",
 ]
 
 [[package]]
@@ -922,12 +898,12 @@ dependencies = [
 
 [[package]]
 name = "numpy"
-version = "0.27.1"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7aac2e6a6e4468ffa092ad43c39b81c79196c2bb773b8db4085f695efe3bba17"
+checksum = "6a5b15d63a5ff39e378daed0e1340d3a5964703ea9712eb09a0dc66fade996f4"
 dependencies = [
  "libc",
- "ndarray 0.17.2",
+ "ndarray",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1015,35 +991,32 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.27.2"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab53c047fcd1a1d2a8820fe84f05d6be69e9526be40cb03b73f86b6b03e6d87d"
+checksum = "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c"
 dependencies = [
- "indoc",
  "libc",
- "memoffset",
  "once_cell",
  "portable-atomic",
  "pyo3-build-config",
  "pyo3-ffi",
  "pyo3-macros",
- "unindent",
 ]
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.27.2"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b455933107de8642b4487ed26d912c2d899dec6114884214a0b3bb3be9261ea6"
+checksum = "c5e2a7d2f0d013342f295c048ad19237add5154a55b1c5a254c0ec93d4109078"
 dependencies = [
  "target-lexicon",
 ]
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.27.2"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c85c9cbfaddf651b1221594209aed57e9e5cff63c4d11d1feead529b872a089"
+checksum = "ca85c467da1bbc8d866eea5deff9cf29ea5f7785054a17da36e65bda9c05845b"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -1051,9 +1024,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.27.2"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a5b10c9bf9888125d917fb4d2ca2d25c8df94c7ab5a52e13313a07e050a3b02"
+checksum = "9ac53762fd065daa3194dd09337a38bd793a188100fd1a9304c4ab312d901771"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -1063,13 +1036,12 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.27.2"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03b51720d314836e53327f5871d4c0cfb4fb37cc2c4a11cc71907a86342c40f9"
+checksum = "4ca3a1557399783172dc5bf39cfca835157732532cba56b71d2292161e53b362"
 dependencies = [
  "heck",
  "proc-macro2",
- "pyo3-build-config",
  "quote",
  "syn",
 ]
@@ -1103,9 +1075,9 @@ checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 
 [[package]]
 name = "rayon"
-version = "1.11.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "368f01d005bf8fd9b1206fb6fa653e6c4a81ceb1466406b81792d87c5677a58f"
+checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
 dependencies = [
  "either",
  "rayon-core",
@@ -1395,12 +1367,6 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
-
-[[package]]
-name = "unindent"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
 
 [[package]]
 name = "utf8parse"
