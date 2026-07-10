@@ -381,6 +381,63 @@ def bilinear_interpolation(
     return xp.asarray(ipix, mask=mask), xp.asarray(weights, mask=mask)
 
 
+def kth_neighbours(ipix, depth, ring, num_threads=0):
+    """Get the kth ring of neighbouring cells around some HEALPix cells at a given depth.
+
+    This method returns a :math:`N` x :math:`8 k` `np.uint64` numpy array containing the neighbours of each cell of the :math:`N` sized `ipix` array.
+    This method is wrapped around the `kth_neighbours <https://docs.rs/cdshealpix/0.9.1/cdshealpix/nested/struct.Layer.html#method.kth_neighbours>`__
+    method of the `cdshealpix Rust crate <https://crates.io/crates/cdshealpix>`__.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    depth : int
+        The depth of the HEALPix cells.
+    ring : int
+        The number of rings. `ring=0` returns just the input cell ids, `ring=1` returns the 8 (or 7) immediate
+        neighbours, `ring=2` returns the 16 neighbours of the immediate neighbours, and so on.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    neighbours : `numpy.ndarray`
+        A :math:`N` x :math:`8 k` `np.int64` numpy array containing the kth ring neighbours of each cell.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth}[`.
+
+    Examples
+    --------
+    >>> from healpix_geo.ring import kth_neighbours
+    >>> import numpy as np
+    >>> ipix = np.array([42, 6, 10])
+    >>> depth = 12
+    >>> ring = 3
+    >>> neighbours = kth_neighbours(ipix, depth, ring)
+    >>> neighbours
+    array([[ 83,  59,  39,  23,  11,   3,   2,  66,   1,   6,  15,  28,  45,
+            225, 184, 147, 114,  85,  60,  65,  89, 117, 149, 185],
+           [ 88,  63,  42,  25,  12,  44,  64,  38,  22,  10,  23,  51,  32,
+              9,  19,  33, 123,  93,  67,  45,  31,  48,  69,  94],
+           [102,  75,  52,  33,  18,  54,  76,  30,  16,   6,  17,  41,  24,
+              5,  13,  25, 139, 107,  79,  55,  39,  58,  81, 108]])
+    """
+    _check_depth(depth)
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = ipix.astype(np.uint64)
+    _check_ring(depth, ring)
+
+    num_threads = np.uint16(num_threads)
+    return healpix_geo.ring.kth_neighbours(depth, ipix, ring, num_threads)
+
+
 def kth_neighbourhood(ipix, depth, ring, num_threads=0):
     """Get the kth ring neighbouring cells of some HEALPix cells at a given depth.
 

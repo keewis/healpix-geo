@@ -464,6 +464,74 @@ def bilinear_interpolation(
     return xp.asarray(ipix, mask=mask), xp.asarray(weights, mask=mask)
 
 
+def kth_neighbours(ipix, ring, num_threads=0):
+    """Get the kth ring of neighbouring cells around some HEALPix cells at a given depth.
+
+    This method returns a :math:`N` x :math:`8 k` `np.uint64` numpy array containing the neighbours of each cell of the :math:`N` sized `ipix` array.
+    This method is wrapped around the `kth_neighbours <https://docs.rs/cdshealpix/0.9.1/cdshealpix/nested/struct.Layer.html#method.kth_neighbours>`__
+    method of the `cdshealpix Rust crate <https://crates.io/crates/cdshealpix>`__.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    ring : int
+        The number of rings. `ring=0` returns just the input cell ids, `ring=1` returns the 8 (or 7) immediate
+        neighbours, `ring=2` returns the 16 neighbours of the immediate neighbours, and so on.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    neighbours : `numpy.ndarray`
+        A :math:`N` x :math:`8 k` `np.int64` numpy array containing the kth ring neighbours of each cell.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth}[`.
+
+    Examples
+    --------
+    >>> from healpix_geo.zuniq import kth_neighbours
+    >>> import numpy as np
+    >>> ipix = np.array([1460288880640, 223338299392, 360777252864], dtype="uint64")
+    >>> ring = 3
+    >>> neighbours = kth_neighbours(ipix, ring)
+    >>> neighbours
+    array([[2497997561114132480, 2497997629833609216, 2497997835992039424,
+            2497997904711516160, 2498000859649015808, 2498000928368492544,
+            2498001134526922752, 2498001237606137856, 2498001271965876224,
+            2497997698553085952, 2497997664193347584,       4690104287232,
+                  4724464025600,       4827543240704,       4861902979072,
+                  4655744548864,       4587025072128,       1632087572480,
+                  1563368095744,       1357209665536,       1288490188800,
+                  1254130450432,       1151051235328,       1116691496960],
+           [5188146684831465472, 5188146753550942208, 2497996599041458176,
+            2497996667760934912, 2497996873919365120, 2497996942638841856,
+            2497997698553085952, 3266611508108328960, 3266611439388852224,
+            3266611405029113856, 3266611027071991808, 3266610992712253440,
+            3266610889633038336, 3266610855273299968,       1116691496960,
+                  1151051235328,       1254130450432,       1288490188800,
+                  1666447310848,       1700807049216,        944892805120,
+                   876173328384,        670014898176,        601295421440],
+           [2497996461602504704, 2497996530321981440, 2497996736480411648,
+            2497996805199888384, 2497997561114132480, 2497997629833609216,
+            2497997835992039424, 2497997939071254528, 2497997973430992896,
+            2497996599041458176, 2497996564681719808,       1391569403904,
+                  1425929142272,       1529008357376,       1563368095744,
+                  1357209665536,       1288490188800,        532575944704,
+                   463856467968,        257698037760,        188978561024,
+                   154618822656,         51539607552,         17179869184]])
+    """
+    ipix = np.astype(np.atleast_1d(ipix), np.uint64)
+
+    num_threads = np.uint16(num_threads)
+    return healpix_geo.zuniq.kth_neighbours(ipix, ring, num_threads)
+
+
 def kth_neighbourhood(ipix, ring, num_threads=0):
     """Get the kth ring neighbouring cells of some HEALPix cells.
 
