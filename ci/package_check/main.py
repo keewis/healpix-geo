@@ -5,9 +5,9 @@ import sys
 print("starting to run script")
 print(sys.version, flush=True)
 
-import numpy as np  # noqa: E402
+import numpy as np
 
-import healpix_geo  # noqa: E402
+import healpix_geo
 
 level = 2
 cell_ids = np.arange(12 * 4**level)
