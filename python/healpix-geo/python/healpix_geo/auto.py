@@ -41,6 +41,13 @@ class Grid:
     ellipsoid: EllipsoidLike = "sphere"
     """The reference ellipsoid of the grid."""
 
+    def __post_init__(self):
+        if isinstance(self.ellipsoid, str):
+            from healpix_geo.ellipsoid import resolve
+
+            # normalize to an object or dict
+            object.__setattr__(self, "ellipsoid", resolve(self.ellipsoid))
+
     def _as_params(self):
         params = {"ellipsoid": self.ellipsoid}
         if self.indexing_scheme != "zuniq":
@@ -336,7 +343,7 @@ def vertices(
     >>> ipix = np.array([42, 6, 10])
     >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
     >>> grid
-    Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
 
     Compute just the vertices:
 
@@ -461,7 +468,7 @@ def bilinear_interpolation(
 
     >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
     >>> grid
-    Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
 
     Define coordinates
 
@@ -541,7 +548,7 @@ def kth_neighbours(
     >>> ipix = np.array([42, 6, 10])
     >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
     >>> grid
-    Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
     >>> ring = 3
     >>> neighbours = hg.kth_neighbours(ipix, grid, ring=ring)
     >>> neighbours
@@ -603,7 +610,7 @@ def kth_neighbourhood(
     >>> ipix = np.array([42, 6, 10])
     >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
     >>> grid
-    Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
     >>> ring = 3
     >>> neighbours = hg.kth_neighbourhood(ipix, grid, ring=ring)
     >>> neighbours
