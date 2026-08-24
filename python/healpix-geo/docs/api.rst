@@ -26,17 +26,18 @@ Overview
 .. tip::
    **For most of the applications**, use module ``healpix_geo.auto`` with the ``nested`` indexing scheme. It offers the best support for hierarchical operations.
 
-Helpers
-~~~~~~~
+Geometry helpers
+~~~~~~~~~~~~~~~~
 .. currentmodule:: healpix_geo
 
 .. autosummary::
    :toctree: generated/
 
    geometry.Bbox
-   slices.Slice
-   slices.ConcreteSlice
-   slices.MultiConcreteSlice
+
+   cartesian_to_lonlat
+   lonlat_to_cartesian
+   vertex_to_lonlat
 
 Common Parameters
 ==================
@@ -73,6 +74,12 @@ Ellipsoids
    **Always use** ``ellipsoid="WGS84"`` for real geospatial applications.
    See :doc:`tutorials/ellipsoid_basics` for more details.
 
+.. currentmodule:: healpix_geo
+
+.. autosummary::
+   :toctree: generated/
+
+   ellipsoid.resolve
 
 Conventions
 ===========

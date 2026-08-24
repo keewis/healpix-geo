@@ -5,8 +5,8 @@ The module `healpix_geo.nested` gives functions for the nested indexing scheme.
 
 .. currentmodule:: healpix_geo.nested
 
-Coordinates Conversions
-~~~~~~~~~~~~~~~~~~~~~~~~
+Coordinate Conversions
+~~~~~~~~~~~~~~~~~~~~~~
 
 Conversions between geographic coordinates and HEALPix indices.
 
@@ -15,10 +15,39 @@ Conversions between geographic coordinates and HEALPix indices.
 
    healpix_to_lonlat
    lonlat_to_healpix
-   vertices
+   healpix_to_cartesian
+   cartesian_to_healpix
 
 .. seealso::
    Tutorial complete : :doc:`../tutorials/coordinate_conversion`
+
+Cell geometry
+~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: ../generated/
+
+   vertices
+   vertex_indices
+
+
+Indexing Scheme Conversions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: ../generated/
+
+   to_ring
+   to_zuniq
+
+Interpolation
+~~~~~~~~~~~~~
+
+Interpolation from HEALPix to geographic coordinates.
+
+.. autosummary::
+   :toctree: ../generated/
+
+   bilinear_interpolation
 
 Hierarchy and neighborhood
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,7 +57,9 @@ Navigation in the hierarchical structure of HEALPix.
 .. autosummary::
    :toctree: ../generated/
 
+   kth_neighbours
    kth_neighbourhood
+   neighbours
    zoom_to
    siblings
 

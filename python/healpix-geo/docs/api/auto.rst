@@ -19,7 +19,33 @@ Coordinate Conversions
 
    healpix_to_lonlat
    lonlat_to_healpix
+   healpix_to_cartesian
+   cartesian_to_healpix
+
+
+Cell geometry
+~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: ../generated/
+
    vertices
+
+Indexing Scheme Conversions
+---------------------------
+
+.. autosummary::
+   :toctree: ../generated/
+
+   convert
+
+Interpolation
+-------------
+Interpolation from HEALPix to geographic coordinates.
+
+.. autosummary::
+   :toctree: ../generated/
+
+   bilinear_interpolation
 
 Hierarchy and neighbourhood
 ----------------------------
@@ -27,6 +53,7 @@ Hierarchy and neighbourhood
 .. autosummary::
    :toctree: ../generated/
 
+   kth_neighbours
    kth_neighbourhood
 
 Coverage requests

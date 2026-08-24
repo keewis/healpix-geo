@@ -1,10 +1,13 @@
 import sys
 
+import marray
 import numpy as np
 import pytest
 
 import healpix_geo
 from healpix_geo import auto
+
+mxp = marray.masked_namespace(np)
 
 
 @pytest.mark.parametrize(
@@ -26,6 +29,113 @@ def test_dispatch_module(scheme, expected):
 def test_dispatch_module_failing(scheme):
     with pytest.raises(ValueError, match="unknown indexing scheme"):
         auto._dispatch_module(scheme)
+
+
+@pytest.mark.parametrize(
+    ["ellipsoid", "expected"],
+    (
+        pytest.param("unitsphere", {"name": "unitsphere", "radius": 1.0}, id="name"),
+        pytest.param(
+            {"name": "sphere", "radius": 6370997.0},
+            {"name": "sphere", "radius": 6370997.0},
+            id="mapping",
+        ),
+    ),
+)
+def test_constructor_ellipsoid(ellipsoid, expected) -> None:
+    grid = auto.Grid(level=5, indexing_scheme="nested", ellipsoid=ellipsoid)
+
+    assert grid.ellipsoid == expected
+
+
+@pytest.mark.parametrize(
+    ["grid", "cell_ids", "levels", "scheme", "expected", "expected_levels"],
+    (
+        pytest.param(
+            auto.Grid(level=4, indexing_scheme="nested", ellipsoid="sphere"),
+            np.array([48, 312]),
+            None,
+            "ring",
+            np.array([936, 823]),
+            4,
+            id="nested-ring",
+        ),
+        pytest.param(
+            auto.Grid(level=7, indexing_scheme="nested", ellipsoid="sphere"),
+            np.array([956, 761, 3278]),
+            np.array([6, 7, 10]),
+            "zuniq",
+            np.array([134615407611871232, 26792899345645568, 1802374435831808]),
+            np.array([6, 7, 10]),
+            id="nested-zuniq",
+        ),
+        pytest.param(
+            auto.Grid(level=4, indexing_scheme="ring", ellipsoid="sphere"),
+            np.array([72, 81, 64, 15]),
+            None,
+            "nested",
+            np.array([750, 1009, 222, 507]),
+            4,
+            id="ring-nested",
+        ),
+        pytest.param(
+            auto.Grid(level=4, indexing_scheme="ring", ellipsoid="sphere"),
+            np.array([72, 81, 64, 15]),
+            None,
+            "zuniq",
+            np.array(
+                [
+                    1689975760170778624,
+                    2273191911915257856,
+                    501025458544967680,
+                    1142788405445263360,
+                ]
+            ),
+            4,
+            id="ring-zuniq",
+        ),
+        pytest.param(
+            auto.Grid(level=4, indexing_scheme="zuniq", ellipsoid="sphere"),
+            np.array(
+                [
+                    6825768185233408,
+                    47358164831567872,
+                    58617163899994112,
+                    40602765390512128,
+                ]
+            ),
+            None,
+            "nested",
+            np.array([48, 336, 416, 288]),
+            np.array([6, 6, 6, 6]),
+            id="zuniq-nested",
+        ),
+        pytest.param(
+            auto.Grid(level=4, indexing_scheme="zuniq", ellipsoid="sphere"),
+            np.array(
+                [
+                    6825768185233408,
+                    47358164831567872,
+                    58617163899994112,
+                    40602765390512128,
+                ]
+            ),
+            None,
+            "ring",
+            np.array([22176, 17070, 17058, 19110]),
+            np.array([6, 6, 6, 6]),
+            id="zuniq-ring",
+        ),
+    ),
+)
+def test_convert(grid, cell_ids, levels, scheme, expected, expected_levels):
+    params = {}
+    if levels is not None:
+        params["level"] = levels
+    actual, levels = auto.convert(cell_ids, grid, to=scheme, **params)
+
+    np.testing.assert_equal(actual, expected)
+    np.testing.assert_equal(levels, expected_levels)
 
 
 @pytest.mark.parametrize(
@@ -90,6 +200,72 @@ def test_healpix_to_lonlat(grid, cell_ids, expected_lon, expected_lat):
 
     np.testing.assert_allclose(actual_lon, expected_lon)
     np.testing.assert_allclose(actual_lat, expected_lat)
+
+
+@pytest.mark.parametrize(
+    ["grid", "cell_ids", "expected_x", "expected_y", "expected_z"],
+    (
+        (
+            auto.Grid(level=5, indexing_scheme="nested", ellipsoid="sphere"),
+            np.array([42, 6, 10], dtype="uint64"),
+            np.array([5135976.029120959, 4377780.484325115, 4807395.498488697]),
+            np.array([3617162.4288051003, 4598126.636314509, 4146887.8757006973]),
+            np.array([1061832.8333333333, 530916.4166666666, 530916.4166666666]),
+        ),
+        (
+            auto.Grid(level=3, indexing_scheme="ring", ellipsoid="sphere"),
+            np.array([340, 245, 244], dtype="uint64"),
+            np.array([4489305.655250199, 2831507.466796499, 3810568.0007241173]),
+            np.array([4489305.655250198, 5297377.8773753615, 4643190.543375064]),
+            np.array([530916.4166666666, 2123665.6666666665, 2123665.6666666665]),
+        ),
+        (
+            auto.Grid(level=6, indexing_scheme="zuniq", ellipsoid="WGS84"),
+            np.array([6825768185233408], dtype="uint64"),
+            np.array([4490116.435263974]),
+            np.array([4490116.435263973]),
+            np.array([596608.3469093519]),
+        ),
+    ),
+)
+def test_healpix_to_cartesian(grid, cell_ids, expected_x, expected_y, expected_z):
+    actual_x, actual_y, actual_z = auto.healpix_to_cartesian(cell_ids, grid)
+
+    np.testing.assert_allclose(actual_x, expected_x)
+    np.testing.assert_allclose(actual_y, expected_y)
+    np.testing.assert_allclose(actual_z, expected_z)
+
+
+@pytest.mark.parametrize(
+    ["grid", "x", "y", "z", "expected_cell_ids"],
+    (
+        (
+            auto.Grid(level=5, indexing_scheme="nested", ellipsoid="sphere"),
+            np.array([5135976.029120959, 4377780.484325115, 4807395.498488697]),
+            np.array([3617162.4288051003, 4598126.636314509, 4146887.8757006973]),
+            np.array([1061832.8333333333, 530916.4166666666, 530916.4166666666]),
+            np.array([42, 6, 10], dtype="uint64"),
+        ),
+        (
+            auto.Grid(level=3, indexing_scheme="ring", ellipsoid="sphere"),
+            np.array([4489305.655250199, 2831507.466796499, 3810568.0007241173]),
+            np.array([4489305.655250198, 5297377.8773753615, 4643190.543375064]),
+            np.array([530916.4166666666, 2123665.6666666665, 2123665.6666666665]),
+            np.array([340, 245, 244], dtype="uint64"),
+        ),
+        (
+            auto.Grid(level=6, indexing_scheme="zuniq", ellipsoid="WGS84"),
+            np.array([4490116.435263974]),
+            np.array([4490116.435263973]),
+            np.array([596608.3469093519]),
+            np.array([6825768185233408], dtype="uint64"),
+        ),
+    ),
+)
+def test_cartesian_to_healpix(grid, x, y, z, expected_cell_ids):
+    actual_cell_ids = auto.cartesian_to_healpix(x, y, z, grid)
+
+    np.testing.assert_equal(actual_cell_ids, expected_cell_ids)
 
 
 @pytest.mark.parametrize(
@@ -214,6 +390,134 @@ def test_vertices(grid, cell_ids, step, expected_lon, expected_lat):
 
     np.testing.assert_allclose(actual_lon, expected_lon)
     np.testing.assert_allclose(actual_lat, expected_lat)
+
+
+@pytest.mark.parametrize(
+    ["grid", "lon", "lat", "expected_cell_ids", "expected_weights"],
+    (
+        pytest.param(
+            auto.Grid(level=3, indexing_scheme="nested", ellipsoid="sphere"),
+            np.array([3.5, 71.2], dtype="float64"),
+            np.array([23.1, -23.1], dtype="float64"),
+            mxp.asarray(
+                np.array([[310, 311, 316, 317], [541, 328, 543, 330]]), mask=False
+            ),
+            mxp.asarray(
+                np.array(
+                    [
+                        [
+                            0.3816076602587845,
+                            0.07548075123095703,
+                            0.45325852900873526,
+                            0.0896530595015232,
+                        ],
+                        [
+                            0.09605305950152325,
+                            0.08685852900873488,
+                            0.4290807512309573,
+                            0.3880076602587846,
+                        ],
+                    ],
+                    dtype="float64",
+                ),
+                mask=False,
+            ),
+            id="nested-sphere-3",
+        ),
+        pytest.param(
+            auto.Grid(level=5, indexing_scheme="ring", ellipsoid="WGS84"),
+            np.array([3.5, 71.2], dtype="float64"),
+            np.array([23.1, -23.1], dtype="float64"),
+            mxp.asarray(
+                np.array([[3777, 3650, 3649, 3521], [8665, 8538, 8537, 8409]]),
+                mask=False,
+            ),
+            mxp.asarray(
+                np.array(
+                    [
+                        [0.31853685, 0.04546025, 0.55657136, 0.07943154],
+                        [0.11072043, 0.08528247, 0.45417136, 0.34982574],
+                    ],
+                    dtype="float64",
+                ),
+                mask=False,
+            ),
+            id="ring-wgs84-5",
+        ),
+        pytest.param(
+            auto.Grid(level=2, indexing_scheme="zuniq", ellipsoid="sphere"),
+            np.array([0.0, 90.0, 180.0, 270.0], dtype="float64"),
+            np.array([-90, -33.0, 33.0, 90], dtype="float64"),
+            mxp.asarray(
+                np.array(
+                    [
+                        [
+                            5782621921543716864,
+                            5206161169240293376,
+                            6359082673847140352,
+                            4629700416936869888,
+                        ],
+                        [
+                            2900318160026599424,
+                            5566449139429933056,
+                            4809844402031689728,
+                            2900318160026599424,
+                        ],
+                        [
+                            4017210867614482432,
+                            1531223873305968640,
+                            774619135907725312,
+                            4017210867614482432,
+                        ],
+                        [
+                            2287828610704211968,
+                            558446353793941504,
+                            1711367858400788480,
+                            1134907106097364992,
+                        ],
+                    ],
+                    dtype="uint64",
+                ),
+                mask=np.array(
+                    [
+                        [False, False, False, False],
+                        [True, False, False, False],
+                        [False, False, False, True],
+                        [False, False, False, False],
+                    ]
+                ),
+            ),
+            mxp.asarray(
+                np.array(
+                    [
+                        [0.25, 0.25, 0.25, 0.25],
+                        [0.0, 0.12495021, 0.12495021, 0.75009958],
+                        [0.75009958, 0.12495021, 0.12495021, 0.0],
+                        [0.25, 0.25, 0.25, 0.25],
+                    ],
+                    dtype="float64",
+                ),
+                mask=np.array(
+                    [
+                        [False, False, False, False],
+                        [True, False, False, False],
+                        [False, False, False, True],
+                        [False, False, False, False],
+                    ]
+                ),
+            ),
+            id="zuniq-sphere-2",
+        ),
+    ),
+)
+def test_bilinear_interpolation(grid, lon, lat, expected_cell_ids, expected_weights):
+    actual_cell_ids, actual_weights = auto.bilinear_interpolation(lon, lat, grid)
+
+    np.testing.assert_equal(actual_cell_ids.data, expected_cell_ids.data)
+    np.testing.assert_equal(actual_cell_ids.mask, expected_cell_ids.mask)
+    print(repr(actual_weights.data))
+    np.testing.assert_equal(actual_weights.mask, expected_weights.mask)
+    np.testing.assert_allclose(actual_weights.data, expected_weights.data)
 
 
 @pytest.mark.parametrize(
@@ -372,8 +676,140 @@ def test_vertices(grid, cell_ids, step, expected_lon, expected_lat):
         ),
     ),
 )
-def test_kth_neighbours(grid, cell_ids, ring, expected):
+def test_kth_neighbourhood(grid, cell_ids, ring, expected):
     actual = auto.kth_neighbourhood(cell_ids, grid, ring=ring)
+
+    np.testing.assert_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ["grid", "cell_ids", "ring", "expected"],
+    (
+        pytest.param(
+            auto.Grid(level=2, indexing_scheme="nested", ellipsoid="sphere"),
+            np.array([3, 54], dtype="uint64"),
+            1,
+            np.array(
+                [
+                    [0, 1, 4, 2, 6, 8, 9, 12],
+                    [49, 52, 53, 51, 55, 57, 60, 61],
+                ],
+                dtype="int64",
+            ),
+            id="nested",
+        ),
+        pytest.param(
+            auto.Grid(level=1, indexing_scheme="ring", ellipsoid="sphere"),
+            np.array([12, 31, 39], dtype="uint64"),
+            2,
+            np.array(
+                [
+                    [
+                        43,
+                        35,
+                        26,
+                        18,
+                        10,
+                        3,
+                        0,
+                        5,
+                        14,
+                        21,
+                        29,
+                        36,
+                        -1,
+                        -1,
+                        -1,
+                        -1,
+                    ],
+                    [
+                        47,
+                        44,
+                        37,
+                        21,
+                        14,
+                        6,
+                        1,
+                        7,
+                        16,
+                        24,
+                        40,
+                        46,
+                        -1,
+                        -1,
+                        -1,
+                        -1,
+                    ],
+                    [
+                        42,
+                        47,
+                        44,
+                        37,
+                        30,
+                        22,
+                        15,
+                        7,
+                        16,
+                        24,
+                        33,
+                        41,
+                        -1,
+                        -1,
+                        -1,
+                        -1,
+                    ],
+                ]
+            ),
+            id="ring",
+        ),
+        pytest.param(
+            auto.Grid(level=None, indexing_scheme="zuniq", ellipsoid="sphere"),
+            np.array(
+                [1963569437533536256, 824158731808800768, 5116089176692883456],
+                dtype="uint64",
+            ),
+            1,
+            np.array(
+                [
+                    [
+                        1783425452438716416,
+                        1891511843495608320,
+                        1927540640514572288,
+                        1855483046476644352,
+                        1999598234552500224,
+                        2071655828590428160,
+                        2179742219647320064,
+                        2215771016666284032,
+                    ],
+                    [
+                        797137134044577792,
+                        806144333299318784,
+                        833165931063541760,
+                        815151532554059776,
+                        851180329573023744,
+                        1013309916158361600,
+                        1022317115413102592,
+                        1049338713177325568,
+                    ],
+                    [
+                        4683743612465315840,
+                        4827858800541171712,
+                        2954361355555045376,
+                        4971973988617027584,
+                        3242591731706757120,
+                        2377900603251621888,
+                        2522015791327477760,
+                        72057594037927936,
+                    ],
+                ],
+                dtype="int64",
+            ),
+            id="zuniq",
+        ),
+    ),
+)
+def test_kth_neighbours(grid, cell_ids, ring, expected):
+    actual = auto.kth_neighbours(cell_ids, grid, ring=ring)
 
     np.testing.assert_equal(actual, expected)
 

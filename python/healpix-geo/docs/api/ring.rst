@@ -8,15 +8,43 @@ The module `healpix_geo.ring` gives for the ring indexation scheme.
 .. note::
    The ring scheme is principally given for **compatibility**. For new applications, prefer `healpix_geo.nested`.
 
-Coordinates Conversions
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Coordinate Conversions
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: ../generated/
 
    healpix_to_lonlat
    lonlat_to_healpix
+   healpix_to_cartesian
+   cartesian_to_healpix
+
+Cell geometry
+~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: ../generated/
+
    vertices
+   vertex_indices
+
+Indexing Scheme Conversions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: ../generated/
+
+   to_nested
+   to_zuniq
+
+Interpolation
+~~~~~~~~~~~~~
+
+Interpolation from HEALPix to geographic coordinates.
+
+.. autosummary::
+   :toctree: ../generated/
+
+   bilinear_interpolation
 
 Hierarchy
 ~~~~~~~~~~
@@ -24,6 +52,7 @@ Hierarchy
 .. autosummary::
    :toctree: ../generated/
 
+   kth_neighbours
    kth_neighbourhood
 
 Coverage

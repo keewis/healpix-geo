@@ -1,7 +1,119 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import marray
 import numpy as np
 
 from healpix_geo import healpix_geo
 from healpix_geo.utils import _check_depth, _check_ipixels, _check_ring
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    import numpy.typing as npt
+
+    from healpix_geo.typing import DepthType
+
+
+def to_nested(
+    ipix: npt.NDArray[np.uint64], depth: DepthType, num_threads: int = 0
+) -> npt.NDArray[np.uint64]:
+    """Convert from ring to nested
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes in the ring scheme given as a `np.uint64` numpy array.
+    depth : int or array-like of int
+        The HEALPix cell depth given as scalar or a `np.uint8` numpy array.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    nested : array-like of int
+        The cell ids in the nested scheme.
+
+    Examples
+    --------
+    >>> import healpix_geo
+    >>> import numpy as np
+
+    Scalar depth:
+
+    >>> ipix_ring = np.array([1190, 189, 870, 432], dtype="uint64")
+    >>> depth = 4
+    >>> ipix_nested = healpix_geo.ring.to_nested(ipix_ring, depth)
+    >>> ipix_nested
+    array([ 32, 125,  45,  91], dtype=uint64)
+
+    Array depth:
+
+    >>> ipix_ring = np.array([44, 7, 9, 432], dtype="uint64")
+    >>> depth = np.array([1, 3, 2, 4], dtype="uint8")
+    >>> ipix_nested = healpix_geo.ring.to_nested(ipix_ring, depth)
+    >>> ipix_nested
+    array([ 32, 125,  45,  91], dtype=uint64)
+    """
+    _check_depth(depth)
+
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = ipix.astype(np.uint64)
+
+    ipix = np.atleast_1d(ipix).astype(np.uint64)
+
+    num_threads = np.uint16(num_threads)
+
+    return healpix_geo.ring.to_nested(ipix, depth, num_threads)
+
+
+def to_zuniq(
+    ipix: npt.NDArray[np.uint64], depth: DepthType, num_threads: int = 0
+) -> npt.NDArray[np.uint64]:
+    """Convert from nested to zuniq
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes in the nested scheme given as a `np.uint64` numpy array.
+    depth : int or array-like of int
+        The HEALPix cell depth given as scalar or a `np.uint8` numpy array.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    nested : array-like of int
+        The cell ids in the nested scheme.
+
+    Examples
+    --------
+    >>> import healpix_geo.nested
+    >>> import numpy as np
+    >>> ipix_ring = np.array([32, 125, 45, 91], dtype="uint64")
+    >>> depth = np.array([1, 3, 2, 4], dtype="uint8")
+    >>> ipix_zuniq = healpix_geo.ring.to_zuniq(ipix_ring, depth)
+    >>> ipix_zuniq
+    array([3530822107858468864,  806144333299318784,  882705526964617216,
+           1106759608426299392], dtype=uint64)
+    """
+    _check_depth(depth)
+
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = ipix.astype(np.uint64)
+
+    depth = depth if isinstance(depth, int) else depth.astype("uint8")
+
+    num_threads = np.uint16(num_threads)
+
+    return healpix_geo.ring.to_zuniq(ipix, depth, num_threads)
 
 
 def healpix_to_lonlat(ipix, depth, ellipsoid="sphere", num_threads=0):
@@ -108,6 +220,120 @@ def lonlat_to_healpix(longitude, latitude, depth, ellipsoid="sphere", num_thread
     )
 
 
+def healpix_to_cartesian(ipix, depth, ellipsoid="sphere", num_threads=0):
+    r"""Get the cartesian coordinates of the center of the given HEALPix cells.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    depth : `numpy.ndarray`
+        The HEALPix cell depth given as a `np.uint8` numpy array.
+    ellipsoid : ellipsoid-like, default: "sphere"
+        Reference ellipsoid to evaluate healpix on. If the reference ellipsoid
+        is spherical, this will return the same result as
+        :py:func:`cdshealpix.nested.healpix_to_lonlat`.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    x, y, z : array-like
+        The coordinates of the center of the HEALPix cells.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth}[`.
+    ValueError
+        When the name of the ellipsoid is unknown.
+
+    Examples
+    --------
+    >>> from healpix_geo.ring import healpix_to_cartesian
+    >>> import numpy as np
+    >>> ipix = np.array([42, 6, 10])
+    >>> depth = 3
+    >>> x, y, z = healpix_to_cartesian(ipix, depth, ellipsoid="WGS84")
+    >>> x
+    array([2223448.21176852, -495094.69891854,  495094.69891854])
+    >>> y
+    array([ 2223448.21176852,  1195264.33678817, -1195264.33678817])
+    >>> z
+    array([5530555.70358274, 6224606.75696243, 6224606.75696243])
+    """
+    _check_depth(depth)
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = ipix.astype(np.uint64)
+
+    num_threads = np.uint16(num_threads)
+
+    return healpix_geo.ring.healpix_to_cartesian(depth, ipix, ellipsoid, num_threads)
+
+
+def cartesian_to_healpix(x, y, z, depth, ellipsoid="sphere", num_threads=0):
+    r"""Get the HEALPix indexes that contain specific points.
+
+    Parameters
+    ----------
+    x : array-like
+        The x coordinate of the input points, in meters.
+    y : array-like
+        The y coordinate of the input points, in meters.
+    z : array-like
+        The z coordinate of the input points, in meters.
+    depth : int or array-like of int
+        The HEALPix cell depth given as a `np.uint8` numpy array.
+    ellipsoid : ellipsoid-like, default: "sphere"
+        Reference ellipsoid to evaluate healpix on. If the reference ellipsoid
+        is spherical, this will return the same result as
+        :py:func:`cdshealpix.nested.lonlat_to_healpix`.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    ipix : `numpy.ndarray`
+        A numpy array containing all the HEALPix cell indexes stored as `np.uint64`.
+
+    Raises
+    ------
+    ValueError
+        When the number of longitudes and latitudes given do not match.
+    ValueError
+        When the name of the ellipsoid is unknown.
+
+    Examples
+    --------
+    >>> from healpix_geo.ring import cartesian_to_healpix
+    >>> import numpy as np
+    >>> x = np.array(
+    ...     [6343428.894701699, 4010777.6054728953, 4094327.79214653], dtype="float64"
+    ... )
+    >>> y = np.array([0.0, 4779858.620418726, 1909216.4044747741], dtype="float64")
+    >>> z = np.array(
+    ...     [662257.957592079, -1317402.5312295998, 4487348.408865919], dtype="float64"
+    ... )
+    >>> depth = 3
+    >>> ipix = cartesian_to_healpix(x, y, z, depth, ellipsoid="WGS84")
+    >>> ipix
+    array([336, 436, 114], dtype=uint64)
+    """
+    _check_depth(depth)
+    x = np.atleast_1d(x).astype("float64")
+    y = np.atleast_1d(y).astype("float64")
+    z = np.atleast_1d(z).astype("float64")
+
+    num_threads = np.uint16(num_threads)
+
+    return healpix_geo.ring.cartesian_to_healpix(depth, x, y, z, ellipsoid, num_threads)
+
+
 def vertices(ipix, depth, ellipsoid, step=1, num_threads=0):
     """Get the longitudes and latitudes of the vertices of some HEALPix cells at a given depth.
 
@@ -174,6 +400,253 @@ def vertices(ipix, depth, ellipsoid, step=1, num_threads=0):
     num_threads = np.uint16(num_threads)
 
     return healpix_geo.ring.vertices(depth, ipix, ellipsoid, step, num_threads)
+
+
+def vertex_indices(
+    ipix: npt.NDArray[np.uint64],
+    depth: int,
+    *,
+    num_threads: int = 0,
+) -> npt.NDArray[np.uint64]:
+    """Get the indices of the 4 vertices of the given cells.
+
+    Parameters
+    ----------
+    ipix : array-like of numpy.uint64
+        The HEALPix cell indexes.
+    depth : int
+        The depth of the HEALPix cells.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    vertex_ids : array-like of numpy.uint64
+        The identifiers of vertices of the given cells.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth})`.
+
+    See Also
+    --------
+    healpix_geo.vertex_to_lonlat
+
+    Examples
+    --------
+    >>> from healpix_geo.nested import vertex_indices
+    >>> import numpy as np
+
+    >>> ipix = np.array([42, 6, 10])
+    >>> depth = 12
+
+    >>> vertex_ids = vertex_indices(ipix, depth)
+    >>> vertex_ids
+    array([[100542461, 100526078, 100509693, 100526077],
+           [100608001, 100591618, 100575233, 100591617],
+           [100607999, 100591616, 100575231, 100591615]], dtype=uint64)
+    """
+    _check_depth(depth)
+    depth = int(depth)
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = np.astype(ipix, np.uint64)
+
+    return healpix_geo.ring.vertex_indices(depth, ipix, num_threads)
+
+
+def bilinear_interpolation(
+    longitude, latitude, depth, *, ellipsoid="sphere", num_threads=0
+):
+    """Get the cell ids and weights necessary to bilinearly interpolate the given values.
+
+    Parameters
+    ----------
+    longitude : array-like
+        The longitudes of the input points, in degrees.
+    latitude : array-like
+        The latitudes of the input points, in degrees.
+    depth : int
+        The depth of the HEALPix cells.
+    ellipsoid : ellipsoid-like, default: "sphere"
+        Reference ellipsoid to evaluate healpix on. If the reference ellipsoid
+        is spherical, this will return the same result as
+        :py:func:`cdshealpix.nested.vertices`.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    cell_ids : array-like
+        The neighbours above and below the given points as a :math:`N` x :math:`4` masked array.
+    weights : array-like
+        The associated weights as a :math:`N` x :math:`4` masked array.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth})`.
+
+    Examples
+    --------
+    >>> from healpix_geo.ring import bilinear_interpolation
+    >>> import numpy as np
+
+    Define coordinates
+
+    >>> lon = np.array([-15.0, -10.0, -5.0, 0.0, 5.0])
+    >>> lat = np.array([30.0, 35.0, 40.0, 45.0, 50.0])
+
+    Compute interpolation weights
+
+    >>> cell_ids, weights = bilinear_interpolation(lon, lat, depth=6, ellipsoid="WGS84")
+    >>> cell_ids
+    MArray(
+        array([[12661, 12405, 12404, 12149],
+               [10872, 10617, 10616, 10360],
+               [ 9340,  9085,  9084,  8828],
+               [ 7320,  7080,  7563,  7319],
+               [ 5943,  5727,  5726,  5514]], dtype=uint64),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    >>> weights
+    MArray(
+        array([[0.22596183, 0.68795133, 0.02128467, 0.06480216],
+               [0.15244623, 0.78751507, 0.00973729, 0.05030142],
+               [0.04859157, 0.12318081, 0.23429192, 0.5939357 ],
+               [0.32719215, 0.17280785, 0.32719215, 0.17280785],
+               [0.14255714, 0.34522269, 0.1497    , 0.36252017]]),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    """
+    _check_depth(depth)
+    longitude = np.atleast_1d(longitude).astype("float64")
+    latitude = np.atleast_1d(latitude).astype("float64")
+
+    num_threads = np.uint16(num_threads)
+
+    ipix, weights = healpix_geo.ring.bilinear_interpolation(
+        depth, longitude, latitude, ellipsoid, num_threads
+    )
+
+    xp = marray.masked_namespace(np)
+    mask = weights == 0
+
+    return xp.asarray(ipix, mask=mask), xp.asarray(weights, mask=mask)
+
+
+def neighbours(
+    ipix: npt.NDArray[np.uint64],
+    depth: int,
+    *,
+    connectivity: Literal["edge", "vertex", "all"] = "all",
+    num_threads: int = 0,
+):
+    """Get the direction-preserving immediate neighbours of some HEALPix cells at a given depth.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    depth : int
+        The depth of the HEALPix cells.
+    connectivity : {"edge", "vertex", "all"}, default: "all"
+        The connectivity of the neighbours. The different kinds are:
+        - ``"edge"`` connectivity returns the four edge-sharing neighbours in ``SW, NW, NE, SE`` order.
+        - ``"vertex"`` connectivity returns the four vertex (but not edge) sharing neighbours. The order is ``S, W, N, E``.
+        - ``"all"`` returns all immediate neighbours. The order is always ``S, SW, W, NW, N, NE, E, SE``.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    neighbours : `numpy.ndarray`
+        A :math:`N` x :math:`n` ``np.int64`` array, with :math:`n = 4` for edge or vertex
+        connectivity and :math:`n = 8` for both together. Scalar inputs are
+        normalized to one-dimensional input, producing shape ``(1, 4)`` or ``(1, 8)``.
+        Missing directional positions are represented by ``-1`` and never shift
+        other positions.
+    """
+    _check_depth(depth)
+
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = ipix.astype(np.uint64)
+
+    num_threads = np.uint16(num_threads)
+    return healpix_geo.ring.neighbours(depth, ipix, connectivity, num_threads)
+
+
+def kth_neighbours(ipix, depth, ring, num_threads=0):
+    """Get the kth ring of neighbouring cells around some HEALPix cells at a given depth.
+
+    This method returns a :math:`N` x :math:`8 k` `np.uint64` numpy array containing the neighbours of each cell of the :math:`N` sized `ipix` array.
+    This method is wrapped around the `kth_neighbours <https://docs.rs/cdshealpix/0.9.1/cdshealpix/nested/struct.Layer.html#method.kth_neighbours>`__
+    method of the `cdshealpix Rust crate <https://crates.io/crates/cdshealpix>`__.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    depth : int
+        The depth of the HEALPix cells.
+    ring : int
+        The number of rings. `ring=0` returns just the input cell ids, `ring=1` returns the 8 (or 7) immediate
+        neighbours, `ring=2` returns the 16 neighbours of the immediate neighbours, and so on.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    neighbours : `numpy.ndarray`
+        A :math:`N` x :math:`8 k` `np.int64` numpy array containing the kth ring neighbours of each cell.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth}[`.
+
+    Examples
+    --------
+    >>> from healpix_geo.ring import kth_neighbours
+    >>> import numpy as np
+    >>> ipix = np.array([42, 6, 10])
+    >>> depth = 12
+    >>> ring = 3
+    >>> neighbours = kth_neighbours(ipix, depth, ring)
+    >>> neighbours
+    array([[ 83,  59,  39,  23,  11,   3,   2,  66,   1,   6,  15,  28,  45,
+            225, 184, 147, 114,  85,  60,  65,  89, 117, 149, 185],
+           [ 88,  63,  42,  25,  12,  44,  64,  38,  22,  10,  23,  51,  32,
+              9,  19,  33, 123,  93,  67,  45,  31,  48,  69,  94],
+           [102,  75,  52,  33,  18,  54,  76,  30,  16,   6,  17,  41,  24,
+              5,  13,  25, 139, 107,  79,  55,  39,  58,  81, 108]])
+    """
+    _check_depth(depth)
+    ipix = np.atleast_1d(ipix)
+    _check_ipixels(data=ipix, depth=depth)
+    ipix = ipix.astype(np.uint64)
+    _check_ring(depth, ring)
+
+    num_threads = np.uint16(num_threads)
+    return healpix_geo.ring.kth_neighbours(depth, ipix, ring, num_threads)
 
 
 def kth_neighbourhood(ipix, depth, ring, num_threads=0):
@@ -311,10 +784,7 @@ def zone_coverage(bbox, depth, *, ellipsoid="sphere", flat=True):
     depth : int
         The maximum depth of the cells to be returned.
     ellipsoid : ellipsoid-like, default: "sphere"
-        Reference ellipsoid to evaluate healpix on. If the reference ellipsoid is
-        spherical, this will return the same result as
-        :py:func:`cdshealpix.nested.zone_search` followed by a translation to the ring
-        scheme.
+        Reference ellipsoid to evaluate healpix on.
     flat : bool, default: True
         If ``True``, the cells returned will all be at the passed depth.
 
@@ -347,10 +817,7 @@ def box_coverage(center, size, angle, depth, *, ellipsoid="sphere", flat=True):
     depth : int
         The maximum depth of the cells to be returned.
     ellipsoid : ellipsoid-like, default: "sphere"
-        Reference ellipsoid to evaluate healpix on. If the reference ellipsoid is
-        spherical, this will return the same result as
-        :py:func:`cdshealpix.nested.box_search` followed by a translation to the ring
-        scheme.
+        Reference ellipsoid to evaluate healpix on.
     flat : bool, default: True
         If ``True``, the cells returned will all be at the passed depth.
 

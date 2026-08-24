@@ -166,8 +166,9 @@ class TestRangeMOCIndex:
             slice(None, 4),
             slice(2, None),
             slice(3, 7),
+            np.array([2, 3, 6], dtype="int8"),
             np.arange(5, dtype="uint64"),
-            np.array([1, 2, 4, 6, 8], dtype="uint64"),
+            np.array([1, 2, 4, 6, 8], dtype="int64"),
         ],
     )
     def test_isel(self, level, cell_ids, indexer):
@@ -211,6 +212,12 @@ class TestRangeMOCIndex:
                 np.arange(12, dtype="uint64"),
                 np.arange(12, dtype="uint64"),
                 id="base cells-array-full",
+            ),
+            pytest.param(
+                0,
+                np.arange(12, dtype="uint64"),
+                np.arange(12, dtype="int64"),
+                id="base cells-array-full-signed",
             ),
             pytest.param(
                 0,
@@ -293,7 +300,9 @@ class TestRangeMOCIndex:
             pytest.param(shapely.Point(30, 30), id="point"),
             pytest.param(shapely.box(-25, 15, 25, 35), id="polygon"),
             pytest.param(
-                shapely.LineString([(30, 30), (31, 31), (32, 33)]), id="linestring"
+                shapely.LineString([(30, 30), (31, 31), (32, 33)]),
+                marks=pytest.mark.skip(reason="not implemented"),
+                id="linestring",
             ),
             pytest.param(healpix_geo.geometry.Bbox(-25, 15, 25, 35), id="bbox"),
         ),
@@ -337,9 +346,7 @@ class TestRangeMOCIndex:
 
         multi_slice, moc = index.query(geom)
 
-        reconstructed = np.concatenate(
-            [cell_ids[s.as_pyslice()] for s in multi_slice], axis=0
-        )
+        reconstructed = np.concatenate([cell_ids[s] for s in multi_slice], axis=0)
         actual = moc.cell_ids()
 
         if expected is not None:

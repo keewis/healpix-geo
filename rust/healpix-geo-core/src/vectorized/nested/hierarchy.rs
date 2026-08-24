@@ -4,8 +4,39 @@ use rayon::prelude::*;
 use cdshealpix as healpix;
 use cdshealpix::nested::Layer;
 
+use crate::connectivity::Connectivity;
 use crate::maybe_parallelize;
 use crate::scalar::nested::hierarchy as scalar;
+
+/// Return immediate neighbours without losing their directional positions.
+///
+/// Missing positions are represented by `-1`.
+pub fn neighbours(
+    ipix: &[u64],
+    layer: &Layer,
+    connectivity: &Connectivity,
+    nthreads: usize,
+) -> Vec<Vec<i64>> {
+    let mut result = Vec::<Vec<i64>>::with_capacity(connectivity.size());
+
+    maybe_parallelize!(nthreads, ipix, result, |hash| scalar::neighbours(
+        hash,
+        layer,
+        connectivity
+    ));
+
+    result
+}
+
+pub fn kth_neighbours(ipix: &[u64], layer: &Layer, ring: &u32, nthreads: usize) -> Vec<Vec<i64>> {
+    let mut result = Vec::<Vec<i64>>::with_capacity(ipix.len());
+
+    maybe_parallelize!(nthreads, ipix, result, |hash| scalar::kth_neighbours(
+        hash, layer, ring
+    ));
+
+    result
+}
 
 pub fn kth_neighbourhood(
     ipix: &[u64],

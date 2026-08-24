@@ -28,12 +28,15 @@ def _dispatch_module(indexing_scheme: str) -> ModuleType:
     return module
 
 
+SchemeType = Literal["nested", "ring", "zuniq"]
+
+
 @dataclass(frozen=True)
 class Grid:
     level: int | None
     """The refinement level of the grid."""
 
-    indexing_scheme: Literal["nested", "ring", "zuniq"] = "nested"
+    indexing_scheme: SchemeType = "nested"
     """The indexing scheme of the grid."""
 
     ellipsoid: EllipsoidLike = "sphere"
@@ -46,6 +49,13 @@ class Grid:
         "resolution": "level",
     }
     """Known aliases of the parameters."""
+
+    def __post_init__(self):
+        if isinstance(self.ellipsoid, str):
+            from healpix_geo.ellipsoid import resolve
+
+            # normalize to an object or dict
+            object.__setattr__(self, "ellipsoid", resolve(self.ellipsoid))
 
     def _as_params(self) -> dict[str, Any]:
         params = {"ellipsoid": self.ellipsoid}
@@ -75,9 +85,71 @@ class Grid:
         return cls(**translated)
 
 
+def convert(
+    ipix: npt.NDArray[np.uint64],
+    grid: Grid,
+    *,
+    to: SchemeType,
+    level: npt.NDArray[np.uint8] | None = None,
+    num_threads: int = 0,
+) -> tuple[npt.NDArray[np.uint64], int | npt.NDArray[np.uint8]]:
+    """Convert the cell ids to a different indexing scheme
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    grid : Grid
+        The definition of the HEALPix grid.
+    to : {"nested", "ring", "zuniq"}
+        The indexing scheme to convert to. If equal to the grid object's
+        indexing scheme the input cell ids will be returned unmodified.
+    level : `numpy.ndarray`, optional
+        The levels in case the cells have a different sizes.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    converted : `numpy.ndarray`
+        The converted cell indexes as a `np.uint64` numpy array.
+    levels : int or `numpy.ndarray`
+        The refinement level of the cell indexes. If the input scheme was
+        ``"nested"`` or ``"ring"`` and `level` was not passed this will be the
+        grid object's refinement level, otherwise an array of refinement levels.
+    """
+    base_indexing_schemes = {"nested", "ring"}
+    if grid.indexing_scheme == to:
+        return ipix
+
+    params = {"num_threads": num_threads}
+    if grid.indexing_scheme not in base_indexing_schemes and level is not None:
+        raise ValueError(
+            f"indexing scheme {grid.indexing_scheme} already contains"
+            " the refinement level in the cell indexes"
+        )
+    elif grid.indexing_scheme in base_indexing_schemes:
+        if level is None:
+            level = grid.level
+        params["depth"] = level
+
+    module = _dispatch_module(grid.indexing_scheme)
+    converter = getattr(module, f"to_{to}", None)
+    if converter is None:
+        raise ValueError(f"unknown indexing scheme: {to!r}")
+
+    result = converter(ipix, **params)
+    if grid.indexing_scheme not in {"nested", "ring"} and to in {"nested", "ring"}:
+        return result
+    else:
+        return result, level
+
+
 def healpix_to_lonlat(
     ipix: npt.NDArray[np.uint64], grid: Grid, *, num_threads: int = 0
-) -> (npt.NDArray[np.float64], npt.NDArray[np.float64]):
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     r"""Get the longitudes and latitudes of the center of some HEALPix cells.
 
     Parameters
@@ -157,6 +229,108 @@ def lonlat_to_healpix(
     return module.lonlat_to_healpix(lon, lat, num_threads=num_threads, **params)
 
 
+def healpix_to_cartesian(
+    ipix: npt.NDArray[np.uint64], grid: Grid, num_threads: int = 0
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    r"""Get the cartesian coordinates of the center of the given HEALPix cells.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    grid : Grid
+        The definition of the HEALPix grid.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    x, y, z : array-like
+        The coordinates of the center of the HEALPix cells.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth}[`.
+    ValueError
+        When the name of the ellipsoid is unknown.
+
+    Examples
+    --------
+    >>> import healpix_geo.auto as hg
+    >>> import numpy as np
+    >>> ipix = np.array([42, 6, 10])
+    >>> grid = hg.Grid(level=3, indexing_scheme="nested", ellipsoid="WGS84")
+    >>> x, y, z = hg.healpix_to_cartesian(ipix, grid)
+    >>> x
+    array([4728734.69011096, 3814362.85063174, 5302653.40426395])
+    >>> y
+    array([ 465739.71573273, 4647814.58136658, 2834327.29466645])
+    >>> z
+    array([4240471.60205904, 2121029.89621885, 2121029.89621885])
+    """
+    module = _dispatch_module(grid.indexing_scheme)
+    params = grid._as_params()
+
+    return module.healpix_to_cartesian(ipix, num_threads=num_threads, **params)
+
+
+def cartesian_to_healpix(
+    x: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64],
+    z: npt.NDArray[np.float64],
+    grid: Grid,
+    num_threads: int = 0,
+) -> npt.NDArray[np.uint64]:
+    r"""Get the HEALPix indexes that contain specific points.
+
+    Parameters
+    ----------
+    x : array-like
+        The x coordinate of the input points, in meters.
+    y : array-like
+        The y coordinate of the input points, in meters.
+    z : array-like
+        The z coordinate of the input points, in meters.
+    grid : Grid
+        The definition of the HEALPix grid.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    ipix : `numpy.ndarray`
+        A numpy array containing all the HEALPix cell indexes stored as `np.uint64`.
+
+    Raises
+    ------
+    ValueError
+        When the number of longitudes and latitudes given do not match.
+    ValueError
+        When the name of the ellipsoid is unknown.
+
+    Examples
+    --------
+    >>> import healpix_geo.auto as hg
+    >>> import numpy as np
+    >>> x = np.array([4728734.69011096, 3814362.85063174, 5302653.40426395])
+    >>> y = np.array([465739.71573273, 4647814.58136658, 2834327.29466645])
+    >>> z = np.array([4240471.60205904, 2121029.89621885, 2121029.89621885])
+    >>> grid = hg.Grid(level=3, indexing_scheme="nested", ellipsoid="WGS84")
+    >>> ipix = hg.cartesian_to_healpix(x, y, z, grid)
+    >>> ipix
+    array([42,  6, 10], dtype=uint64)
+    """
+    module = _dispatch_module(grid.indexing_scheme)
+    params = {"depth": grid.level, "ellipsoid": grid.ellipsoid}
+
+    return module.cartesian_to_healpix(x, y, z, num_threads=num_threads, **params)
+
+
 def vertices(
     ipix: npt.NDArray[np.uint64], grid: Grid, *, step: int = 1, num_threads: int = 0
 ) -> (npt.NDArray[np.float64], npt.NDArray[np.float64]):
@@ -198,7 +372,7 @@ def vertices(
     >>> ipix = np.array([42, 6, 10])
     >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
     >>> grid
-    Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
 
     Compute just the vertices:
 
@@ -280,6 +454,154 @@ def vertices(
     return module.vertices(ipix, num_threads=num_threads, step=step, **params)
 
 
+def bilinear_interpolation(
+    longitude: npt.NDArray[np.floating],
+    latitude: npt.NDArray[np.floating],
+    grid: Grid,
+    *,
+    num_threads: int = 0,
+) -> tuple[Any, Any]:
+    """Get the cell ids and weights necessary to bilinearly interpolate the given values.
+
+    Parameters
+    ----------
+    longitude : array-like
+        The longitudes of the input points, in degrees.
+    latitude : array-like
+        The latitudes of the input points, in degrees.
+    grid : Grid
+        The definition of the HEALPix grid.
+    num_threads : int, optional
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    cell_ids : array-like
+        The neighbours above and below the given points as a :math:`N` x :math:`4` masked array.
+    weights : array-like
+        The associated weights as a :math:`N` x :math:`4` masked array.
+
+    Raises
+    ------
+    ValueError
+        When the HEALPix cell indexes given have values out of :math:`[0, 4^{29 - depth})`.
+
+    Examples
+    --------
+    >>> import healpix_geo.auto as hg
+    >>> import numpy as np
+
+    Define the grid
+
+    >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
+    >>> grid
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
+
+    Define coordinates
+
+    >>> lon = np.array([-15.0, -10.0, -5.0, 0.0, 5.0], dtype="float64")
+    >>> lat = np.array([30.0, 35.0, 40.0, 45.0, 50.0], dtype="float64")
+
+    Compute interpolation weights
+
+    >>> cell_ids, weights = hg.bilinear_interpolation(lon, lat, grid)
+    >>> cell_ids
+    MArray(
+        array([[54892952, 54892953, 54892954, 54892955],
+               [55675332, 55675333, 55675334, 55675335],
+               [55890822, 55890823, 55890828, 55890829],
+               [11206655, 11250346, 55967743, 56055125],
+               [11481364, 11481365, 11481366, 11481367]], dtype=uint64),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    >>> weights
+    MArray(
+        array([[0.13888889, 0.69444444, 0.02777778, 0.13888889],
+               [0.21156076, 0.15051566, 0.37273788, 0.2651857 ],
+               [0.12397948, 0.17692801, 0.28803912, 0.4110534 ],
+               [0.00248345, 0.49751655, 0.00248345, 0.49751655],
+               [0.0540781 , 0.08623943, 0.33131993, 0.52836254]]),
+        array([[False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False],
+               [False, False, False, False]])
+    )
+    """
+    module = _dispatch_module(grid.indexing_scheme)
+    params = grid._as_params() | {"depth": grid.level}
+
+    return module.bilinear_interpolation(
+        longitude, latitude, **params, num_threads=num_threads
+    )
+
+
+def kth_neighbours(
+    ipix: npt.NDArray[np.uint64], grid: Grid, *, ring: int, num_threads: int = 0
+) -> npt.NDArray[np.int64]:
+    """Get the kth ring neighbouring cells of some HEALPix cells.
+
+    This method returns a :math:`N` x :math:`8 k` `np.uint64` numpy array containing the neighbours of each cell of the :math:`N` sized `ipix` array.
+    This method is wrapped around the `kth_neighbours <https://docs.rs/cdshealpix/0.9.1/cdshealpix/nested/struct.Layer.html#method.kth_neighbours>`__
+    method of the `cdshealpix Rust crate <https://crates.io/crates/cdshealpix>`__.
+
+    Parameters
+    ----------
+    ipix : `numpy.ndarray`
+        The HEALPix cell indexes given as a `np.uint64` numpy array.
+    grid : Grid
+        The definition of the HEALPix grid.
+    ring : int
+        The number of rings. `ring=0` returns just the input cell ids, `ring=1` returns the 8 (or 7) immediate
+        neighbours, `ring=2` returns the 16 neighbours of the immediate neighbours, and so on.
+    num_threads : int, default: 0
+        Specifies the number of threads to use for the computation. Default to 0 means
+        it will choose the number of threads based on the RAYON_NUM_THREADS environment variable (if set),
+        or the number of logical CPUs (otherwise)
+
+    Returns
+    -------
+    neighbours : `numpy.ndarray`
+        A :math:`N` x :math:`8 k` `np.int64` numpy array containing the kth ring neighbours of each cell.
+
+    Examples
+    --------
+    >>> import healpix_geo.auto as hg
+    >>> import numpy as np
+    >>> ipix = np.array([42, 6, 10])
+    >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
+    >>> grid
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
+    >>> ring = 3
+    >>> neighbours = hg.kth_neighbours(ipix, grid, ring=ring)
+    >>> neighbours
+    array([[ 72701297,  72701299,  72701305,  72701307,  72701393,  72701395,
+             72701401,  72701404,  72701405,  72701301,  72701300,       136,
+                  137,       140,       141,       135,       133,        47,
+                   45,        39,        37,        36,        33,        32],
+           [150994941, 150994943,  72701269,  72701271,  72701277,  72701279,
+             72701301,  95070907,  95070905,  95070904,  95070893,  95070892,
+             95070889,  95070888,        32,        33,        36,        37,
+                   48,        49,        27,        25,        19,        17],
+           [ 72701265,  72701267,  72701273,  72701275,  72701297,  72701299,
+             72701305,  72701308,  72701309,  72701269,  72701268,        40,
+                   41,        44,        45,        39,        37,        15,
+                   13,         7,         5,         4,         1,         0]])
+    """
+    module = _dispatch_module(grid.indexing_scheme)
+    params = {}
+    if grid.indexing_scheme != "zuniq":
+        params["depth"] = grid.level
+
+    return module.kth_neighbours(ipix, ring=ring, num_threads=num_threads, **params)
+
+
 def kth_neighbourhood(
     ipix: npt.NDArray[np.uint64], grid: Grid, *, ring: int, num_threads: int = 0
 ) -> npt.NDArray[np.int64]:
@@ -317,7 +639,7 @@ def kth_neighbourhood(
     >>> ipix = np.array([42, 6, 10])
     >>> grid = hg.Grid(level=12, indexing_scheme="nested", ellipsoid="sphere")
     >>> grid
-    Grid(level=12, indexing_scheme='nested', ellipsoid='sphere')
+    Grid(level=12, indexing_scheme='nested', ellipsoid={'name': 'sphere', 'radius': 6370997.0})
     >>> ring = 3
     >>> neighbours = hg.kth_neighbourhood(ipix, grid, ring=ring)
     >>> neighbours
