@@ -3,8 +3,16 @@ name: Rust CI
 on:
   push:
     branches: ["main"]
+    paths:
+      - "Cargo.*"
+      - "healpix-geo/Cargo.toml"
+      - "healpix-geo/src/**"
   pull_request:
     branches: ["main"]
+    paths:
+      - "Cargo.*"
+      - "healpix-geo/Cargo.toml"
+      - "healpix-geo/src/**"
 
 concurrency:
   group: ${{ github.workflow }}.${{ github.ref }}
@@ -32,8 +40,8 @@ jobs:
           hash-files: |
             pixi.toml
             Cargo.toml
-            python/healpix-geo/pyproject.toml
-            python/healpix-geo/pixi.toml
+            healpix-geo-python/pyproject.toml
+            healpix-geo-python/pixi.toml
 
   lint:
     name: Lint
