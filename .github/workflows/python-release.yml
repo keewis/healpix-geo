@@ -6,9 +6,7 @@
 name: Build wheels
 
 on:
-  release:
-    types:
-      - published
+  push:
     tags:
       - "python-v*"
   pull_request:
@@ -44,7 +42,7 @@ jobs:
       - name: Detect label
         id: detect-trigger-label
         env:
-          LABEL_FOUND: ${{ contains(github.event.pull_request.labels.*.name, 'build-wheels') }}
+          LABEL_FOUND: ${{ contains(github.event.pull_request.labels.*.name, 'build-wheel') || contains(github.event.pull_request.labels.*.name, 'release') }}
         run: |
           echo "label-found=$LABEL_FOUND" >> "$GITHUB_OUTPUT"
 
@@ -61,7 +59,7 @@ jobs:
           fi
 
   linux:
-    name: linux ${{ matrix.target }}
+    name: linux ${{ matrix.platform.target }}
     needs: detect-ci-trigger
     if: |
       github.event_name == 'release'
@@ -100,10 +98,10 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out ../../dist --find-interpreter
+          args: --release --out ../dist --find-interpreter
           sccache: "false"
           manylinux: auto
-          working-directory: python/healpix-geo
+          working-directory: healpix-geo-python
 
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -112,7 +110,7 @@ jobs:
           path: dist
 
   musllinux:
-    name: musllinux ${{ matrix.target }}
+    name: musllinux ${{ matrix.platform.target }}
     needs: detect-ci-trigger
     if: |
       github.event_name == 'release'
@@ -145,10 +143,10 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out ../../dist --find-interpreter
+          args: --release --out ../dist --find-interpreter
           sccache: "false"
           manylinux: musllinux_1_2
-          working-directory: python/healpix-geo
+          working-directory: healpix-geo-python
 
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -157,7 +155,7 @@ jobs:
           path: dist
 
   windows:
-    name: windows ${{ matrix.target }}
+    name: windows ${{ matrix.platform.target }}
     needs: detect-ci-trigger
     if: |
       github.event_name == 'release'
@@ -187,9 +185,9 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out ../../dist --find-interpreter
+          args: --release --out ../dist --find-interpreter
           sccache: "false"
-          working-directory: python/healpix-geo
+          working-directory: healpix-geo-python
 
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -198,7 +196,7 @@ jobs:
           path: dist
 
   macos:
-    name: macos ${{ matrix.target }}
+    name: macos ${{ matrix.platform.target }}
     needs: detect-ci-trigger
     if: |
       github.event_name == 'release'
@@ -227,9 +225,9 @@ jobs:
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out ../../dist --find-interpreter
+          args: --release --out ../dist --find-interpreter
           sccache: "false"
-          working-directory: python/healpix-geo
+          working-directory: healpix-geo-python
 
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -245,8 +243,8 @@ jobs:
   #       uses: PyO3/maturin-action@v1
   #       with:
   #         command: sdist
-  #         args: --out ../../dist
-  #         working-directory: python/healpix-geo
+  #         args: --out ../dist
+  #         working-directory: healpix-geo-python
   #     - name: Upload sdist
   #       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
   #       with:
