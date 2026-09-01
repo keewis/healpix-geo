@@ -17,6 +17,8 @@ Conversions between geographic coordinates and HEALPix indices.
    lonlat_to_healpix
    healpix_to_cartesian
    cartesian_to_healpix
+   healpix_to_base_cell_coordinates
+   base_cell_coordinates_to_healpix
 
 .. seealso::
    Tutorial complete : :doc:`../tutorials/coordinate_conversion`

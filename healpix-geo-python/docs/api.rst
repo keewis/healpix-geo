@@ -26,6 +26,17 @@ Overview
 .. tip::
    **For most of the applications**, use module ``healpix_geo.auto`` with the ``nested`` indexing scheme. It offers the best support for hierarchical operations.
 
+Base cell topology
+~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: healpix_geo.topology
+
+.. autosummary::
+   :toctree: generated/
+
+   base_cell_relationship
+
+
 Geometry helpers
 ~~~~~~~~~~~~~~~~
 .. currentmodule:: healpix_geo

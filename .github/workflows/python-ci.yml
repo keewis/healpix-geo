@@ -59,6 +59,10 @@ jobs:
     outputs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
       pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
+
+    env:
+      BUILD_EDITABLE_PYTHON: false
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,11 +105,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Rust
-        run: |
-          rustup update stable
-          rustup default stable
-
       - uses: Parcels-code/pixi-lock/restore@1fab4c17af8243f6ca1321bc941cf2325f46c05d # v0.1.1
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
@@ -123,28 +122,8 @@ jobs:
           cache: true
           frozen: true
 
-      - name: Help finding installed libraries
-        run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
-          if [[ -z "$CONDA_PREFIX" ]]; then
-            echo "CONDA_PREFIX is unset!"
-            exit 1
-          fi
-
-          pushd $CONDA_PREFIX
-          echo "PKG_CONFIG_PATH=$(readlink -f lib/pkgconfig)" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$(readlink -f lib)" >> $GITHUB_ENV
-          popd
-
-      - name: Help the linker on macos
-        if: runner.os == 'MacOS'
-        run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
-
-          if [ ! -d target/debug/deps ]; then
-              mkdir -p target/debug/deps
-              ln -s $CONDA_PREFIX/lib/*.dylib target/debug/deps/
-          fi
+      - name: editable install
+        run: pixi install --frozen -e "$ENV"
 
       - name: Check imports
         run: |
@@ -180,50 +159,26 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Rust
-        run: |
-          rustup update stable
-          rustup default stable
-
       - uses: Parcels-code/pixi-lock/restore@1fab4c17af8243f6ca1321bc941cf2325f46c05d # v0.1.1
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-
-      - name: setup environment
-        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
-        with:
-          environments: "${{ matrix.env }}"
-          pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          cache: true
-          frozen: true
 
       - name: Create rust cache
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           prefix-key: "py${{ matrix.python-version }}"
 
-      - name: Help finding installed libraries
-        run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
-          if [[ -z "$CONDA_PREFIX" ]]; then
-            echo "CONDA_PREFIX is unset!"
-            exit 1
-          fi
+      - name: setup environment
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          environments: "${{ matrix.env }}"
+          pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
+          cache-key: "pixi-doctests-"
+          cache: true
+          frozen: true
 
-          pushd $CONDA_PREFIX
-          echo "PKG_CONFIG_PATH=$(readlink -f lib/pkgconfig)" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$(readlink -f lib)" >> $GITHUB_ENV
-          popd
-
-      - name: Help the linker on macos
-        if: runner.os == 'MacOS'
-        run: |
-          export CONDA_PREFIX=$(pixi run --frozen -e $ENV 'echo $CONDA_PREFIX')
-
-          if [ ! -d target/debug/deps ]; then
-              mkdir -p target/debug/deps
-              ln -s $CONDA_PREFIX/lib/*.dylib target/debug/deps/
-          fi
+      - name: editable install
+        run: pixi install --frozen -e "$ENV"
 
       - name: Check imports
         run: |
