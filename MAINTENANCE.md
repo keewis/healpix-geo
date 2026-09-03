@@ -1,21 +1,5 @@
 # maintainer's guide
 
-## continuous integration
-
-To save compute time, CI is triggered only when the relevant language was impacted by a PR. More concretely:
-
-- rust CI will only run when `$project_root/Cargo.*` or `$project_root/healpix-geo/*` was modified
-- python CI will run when the rust CI runs, and additionally when `$project_root/healpix-geo-python/*` was modified
-- ReadTheDocs runs will be skipped except on `main` or on tags, or when the python CI runs
-- js CI will run when the rust CI runs, and additionally when `$project_root/healpix-geo-js/*` was modified
-
-This behavior can be changed by adding labels or commit message tags (text enclosed in brackets in the first line of the commit message):
-
-- adding a `[run-rtd]` commit message tag will always run RTD on that commit
-- adding a `[skip-rtd]` commit message tag will skip RTD on that commit (`[run-rtd]` is prioritized)
-- adding a `[skip-ci]` commit message will skip all CI on that commit
-- adding a `skip-ci` label to the PR will skip all github CI for the entire PR
-
 ## releases
 
 To trigger a release, create a release through the "draft releases" page of github.
