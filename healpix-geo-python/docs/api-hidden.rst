@@ -44,3 +44,4 @@
    healpix_geo.RaggedArray.apply_elementwise
    healpix_geo.RaggedArray.as_awkward
    healpix_geo.RaggedArray.as_ragged
+   healpix_geo.RaggedArray.as_masked_array
