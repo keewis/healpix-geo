@@ -137,8 +137,9 @@ pub(crate) struct GridOptions {
 /// The options object accepted by the `Grid` constructor.
 #[wasm_bindgen(typescript_custom_section)]
 const GRID_OPTIONS: &'static str = r#"
+export type IndexingScheme = "nested" | "ring" | "zuniq";
 export type GridOptions = {
-    scheme: "nested" | "ring" | "zuniq";
+    scheme: IndexingScheme;
     level: number;
     ellipsoid?: EllipsoidInput | null;
 };
@@ -154,11 +155,11 @@ pub(crate) struct PartialGridOptions {
     ellipsoid: Option<EllipsoidLike>,
 }
 
-/// The options object accepted by the `Grid` constructor.
+/// The options object accepted by the `Grid.replace` function
 #[wasm_bindgen(typescript_custom_section)]
 const PARTIAL_GRID_OPTIONS: &'static str = r#"
 export type PartialGridOptions = {
-    scheme?: "nested" | "ring" | "zuniq";
+    scheme?: IndexingScheme;
     level?: number;
     ellipsoid?: EllipsoidInput | null;
 };
@@ -503,7 +504,7 @@ impl Grid {
     ///
     /// Narrowed to the literal union so that `other.toScheme(cell,
     /// grid.scheme)` type-checks and `switch (grid.scheme)` is exhaustive.
-    #[wasm_bindgen(getter, unchecked_return_type = "\"nested\" | \"ring\" | \"zuniq\"")]
+    #[wasm_bindgen(getter, unchecked_return_type = "IndexingScheme")]
     pub fn scheme(&self) -> String {
         self.scheme.name().to_string()
     }
@@ -683,7 +684,7 @@ impl Grid {
     pub fn to_scheme(
         &self,
         cell: u64,
-        #[wasm_bindgen(unchecked_param_type = "\"nested\" | \"ring\" | \"zuniq\"")] scheme: &str,
+        #[wasm_bindgen(unchecked_param_type = "IndexingScheme")] scheme: &str,
         level: Option<f64>,
     ) -> Result<u64, JsValue> {
         Scheme::parse(scheme)
